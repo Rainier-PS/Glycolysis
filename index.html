@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="An interactive molecular lecture exploring glycolysis from glucose to pyruvate.">
+  <title>Glycolysis | Interactive 3D Molecular Viewer</title>
+  <link rel="canonical" href="https://glycolysis-project.example/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Glycolysis | Interactive 3D Molecular Viewer">
+  <meta property="og:description" content="Explore glycolysis through an interactive 3D molecular viewer with all 15 pathway intermediates and cofactors.">
+  <meta property="og:url" content="https://glycolysis-project.example/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Glycolysis | Interactive 3D Molecular Viewer">
+  <meta name="twitter:description" content="Explore glycolysis through an interactive 3D molecular viewer with all 15 pathway intermediates and cofactors.">
+  <meta name="google-site-verification" content="REPLACE_WITH_GOOGLE_VERIFICATION_TOKEN">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Glycolysis Interactive","description":"An interactive 3D molecular viewer for exploring the glycolysis metabolic pathway.","applicationCategory":"EducationalApplication","operatingSystem":"Web Browser","url":"https://glycolysis-project.example/"}</script>
+  <script src="vendor/3dmol/3Dmol-min.js"></script>
+  <link rel="stylesheet" href="styles/landing.css">
+</head>
+<body>
+  <a href="#viewerSection" class="skip-link">Skip to viewer</a>
+
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-cell" aria-hidden="true"></div>
+    <div class="hero-molecule" aria-hidden="true">
+      <svg viewBox="0 0 620 620" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="atom" cx="32%" cy="28%" r="72%">
+            <stop offset="0" stop-color="#5b6369"/>
+            <stop offset=".38" stop-color="#343b40"/>
+            <stop offset=".78" stop-color="#151a1e"/>
+            <stop offset="1" stop-color="#080b0e"/>
+          </radialGradient>
+        </defs>
+        <g fill="none" stroke="#242a2e" stroke-width="9" stroke-linecap="round" opacity=".8">
+          <path d="M120 430L166 323L268 282L310 176L412 122L514 170L550 278L481 355L382 326L310 420L198 484Z"/>
+          <path d="M166 323L382 326M268 282L382 326M310 176L481 355M310 420L550 278"/>
+        </g>
+        <g fill="url(#atom)">
+          <circle cx="120" cy="430" r="27"/>
+          <circle cx="166" cy="323" r="30"/>
+          <circle cx="268" cy="282" r="28"/>
+          <circle cx="310" cy="176" r="31"/>
+          <circle cx="412" cy="122" r="30"/>
+          <circle cx="514" cy="170" r="31"/>
+          <circle cx="550" cy="278" r="29"/>
+          <circle cx="481" cy="355" r="30"/>
+          <circle cx="382" cy="326" r="33"/>
+          <circle cx="310" cy="420" r="29"/>
+          <circle cx="198" cy="484" r="28"/>
+        </g>
+      </svg>
+    </div>
+    <div class="page-context" aria-hidden="true"><strong>MOLECULAR PATHWAY</strong></div>
+    <div class="hero-content">
+      <div class="hero-copy">
+        <p class="eyebrow">CELLULAR ENERGY · INTERACTIVE MOLECULAR LECTURE</p>
+        <h1 id="hero-title">GLYCOLYSIS</h1>
+        <div class="hero-rule" aria-hidden="true"></div>
+        <p class="description">A ten-step pathway through the cytosol that converts glucose into pyruvate, generating ATP and NADH.</p>
+        <a class="story-link" href="story/index.html">
+          <span class="story-copy">
+            <span class="story-title">Interactive Story</span>
+            <span class="story-subtitle">Follow glucose to pyruvate</span>
+          </span>
+          <span class="story-arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
+      <p class="scroll-cue">SCROLL TO ENTER THE CYTOSOL ↓</p>
+    </div>
+  </section>
+
+  <section class="viewer-section" id="viewerSection" aria-labelledby="viewer-heading">
+    <div class="viewer-inner">
+      <div class="viewer-sidebar">
+        <h2 class="viewer-heading" id="viewer-heading">Pick a molecule</h2>
+        <p class="viewer-subtitle">Select a molecule to explore its interactive 3D structure.</p>
+        <div class="mol-btn-grid" id="molGrid" role="radiogroup" aria-label="Molecule selector"></div>
+      </div>
+      <div class="viewer-main">
+        <div class="viewer-canvas-wrap">
+          <div id="viewerInfo" class="viewer-info-bar" aria-live="polite">
+            <span class="viewer-info-placeholder" id="viewerPlaceholder">Select a molecule from the list</span>
+            <span class="viewer-info-name" id="viewerName" hidden></span>
+            <span class="viewer-info-formula" id="viewerFormula" hidden></span>
+          </div>
+          <div id="viewer3d" aria-label="Interactive 3D molecular visualization"></div>
+          <div class="mol-legend" role="img" aria-label="Atom color legend">
+            <span class="mol-legend-item"><span class="mol-legend-dot" style="background:#808080"></span>C<span class="mol-legend-tip">Carbon</span></span>
+            <span class="mol-legend-item"><span class="mol-legend-dot" style="background:#e04040"></span>O<span class="mol-legend-tip">Oxygen</span></span>
+            <span class="mol-legend-item"><span class="mol-legend-dot" style="background:#4060e0"></span>N<span class="mol-legend-tip">Nitrogen</span></span>
+            <span class="mol-legend-item"><span class="mol-legend-dot" style="background:#f0a030"></span>P<span class="mol-legend-tip">Phosphorus</span></span>
+            <span class="mol-legend-item"><span class="mol-legend-dot" style="background:#e0e0e0"></span>H<span class="mol-legend-tip">Hydrogen</span></span>
+          </div>
+          <div class="viewer-controls" role="toolbar" aria-label="Viewer controls">
+            <button class="vc-btn" id="btnToggleSpin" aria-pressed="true" title="Toggle auto-rotation">AUTO</button>
+            <button class="vc-btn" id="btnToggleH" aria-pressed="false" title="Toggle hydrogen atoms">H</button>
+            <button class="vc-btn" id="btnReset" title="Reset camera view">RESET</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="footer-logo">Glycolysis<span class="accent">.</span></div>
+        <p class="footer-tagline">An interactive molecular lecture exploring the ten-step metabolic pathway from glucose to pyruvate, through the cytosol.</p>
+      </div>
+      <nav class="footer-col" aria-label="Explore">
+        <span class="footer-col-title">Explore</span>
+        <a href="#viewerSection">3D Molecular Viewer</a>
+        <a href="story/index.html">Interactive Story</a>
+      </nav>
+      <nav class="footer-col" aria-label="Legal">
+        <span class="footer-col-title">Legal</span>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html">Terms of Use</a>
+        <a href="accessibility.html">Accessibility Statement</a>
+      </nav>
+      <div class="footer-col">
+        <span class="footer-col-title">About</span>
+        <a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank" rel="noopener">Molecule Data (PubChem)</a>
+        <a href="https://github.com" target="_blank" rel="noopener">Source on GitHub</a>
+      </div>
+    </div>
+    <div class="footer-divider"></div>
+    <div class="footer-bottom">
+      <span class="footer-copy">© 2026 Glycolysis Interactive. Educational use only.</span>
+      <div class="footer-bottom-links">
+        <a href="#" class="footer-back-top" aria-label="Back to top">↑ Back to top</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="src/viewer.js"></script>
+  <script src="src/init.js"></script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Glycolysis | An Interactive Molecular Journey</title>
+  <meta name="description" content="Explore glycolysis through an interactive molecular journey from glucose to pyruvate, with clear explanations of ATP, NADH, enzymes, and the ten reactions of the pathway.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="../vendor/3dmol/3Dmol-min.js"></script>
+  <link rel="stylesheet" href="story.css">
+</head>
+<body>
+  <a href="#mainContent" class="skip-link">Skip to main content</a>
+  <div id="srLive" class="sr-only" aria-live="polite" aria-atomic="true" role="status"></div>
+  <div id="srMolDesc" class="sr-only" role="img"></div>
+  <div id="loadingScreen" role="status" aria-live="polite" aria-label="Loading documentary">
+  <div class="loader-title">Glycolysis</div>
+  <div class="loader-sub">Preparing your journey&hellip;</div>
+  <div class="loader-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+</div>
+  <div id="mainContent" role="main" aria-label="Glycolysis molecular documentary">
+  <div id="viewport" aria-label="Interactive 3D molecular visualization" aria-describedby="srMolDesc"><div id="molViewer"></div></div>
+  <div id="molFade" aria-hidden="true"></div>
+  <div id="molFallback"><div id="molFallbackText"></div></div>
+  <canvas id="atmosphere" aria-hidden="true"></canvas>
+  <div id="fadeOverlay" aria-hidden="true"></div>
+  <div id="sceneLabel" aria-hidden="true"></div>
+  <div id="stepCounter" aria-hidden="true"></div>
+  <div id="molLabel" aria-hidden="true">
+    <div class="mol-label-name" id="molLabelName"></div>
+    <div class="mol-label-formula" id="molLabelFormula"></div>
+  </div>
+  <div id="narrationControls" role="toolbar" aria-label="Navigation and narration controls">
+    <button type="button" class="nar-btn" id="btnHome" aria-label="Back to home">HOME</button>
+    <button class="nar-btn" id="btnNarration" aria-pressed="true" aria-label="Toggle voice narration" title="Toggle narration (N)">NARRATION</button>
+  </div>
+  <div id="enzymeLabel" aria-hidden="true">
+    <div class="enzyme-name" id="enzymeName"></div>
+    <div class="enzyme-reaction" id="enzymeReaction"></div>
+  </div>
+  <div id="viewerToolbar" role="toolbar" aria-label="Viewer controls">
+    <button class="vtb" id="btnRotate" aria-pressed="true" aria-label="Toggle auto rotation" title="Auto-rotate (R)">AUTO</button>
+    <button class="vtb" id="btnHydrogen" aria-pressed="false" aria-label="Toggle hydrogen atoms" title="Show hydrogens (H)">H</button>
+    <button class="vtb" id="btnReset" aria-label="Reset camera view" title="Reset camera">RESET</button>
+  </div>
+  <div id="deepDetail" aria-hidden="true">
+    <div id="deepDetailLabel">DEEPER DETAIL</div>
+    <div id="deepDetailText"></div>
+  </div>
+  <div id="caption" aria-hidden="true"><div id="captionText"></div></div>
+  <div id="sceneControls">
+    <div id="countdownText" role="timer" aria-label="Countdown"></div>
+    <div id="navRow">
+      <button class="sctrl" id="btnPrev" aria-label="Previous scene">&larr; BACK</button>
+      <button class="sctrl" id="btnPause" aria-pressed="false" aria-label="Pause story" title="Pause story (P)">PAUSE</button>
+      <button class="sctrl" id="btnStay" aria-label="Stay on this scene">STAY</button>
+      <button class="sctrl" id="btnNext" aria-label="Next scene">NEXT &rarr;</button>
+    </div>
+  </div>
+  <div id="accounting" aria-label="Energy accounting"></div>
+  <div id="overallEquation" aria-label="Overall glycolysis equation"></div>
+  <div id="legend" aria-label="Atom color legend" role="img">
+    <span class="leg-item"><span class="leg-dot" style="background:#808080" aria-hidden="true"></span>C<span class="leg-tip">Carbon</span></span>
+    <span class="leg-item"><span class="leg-dot" style="background:#e04040" aria-hidden="true"></span>O<span class="leg-tip">Oxygen</span></span>
+    <span class="leg-item"><span class="leg-dot" style="background:#4060e0" aria-hidden="true"></span>N<span class="leg-tip">Nitrogen</span></span>
+    <span class="leg-item"><span class="leg-dot" style="background:#f0a030" aria-hidden="true"></span>P<span class="leg-tip">Phosphorus</span></span>
+    <span class="leg-item"><span class="leg-dot" style="background:#e0e0e0" aria-hidden="true"></span>H<span class="leg-tip">Hydrogen</span></span>
+  </div>
+  <div id="molecularCaveat" aria-hidden="true">Representative ionic form; protonation state depends on pH.</div>
+  <div id="loadingIndicator" aria-hidden="true">preparing molecular structure&hellip;</div>
+</div>
+  <script src="story.js"></script>
+</body>
+</html>

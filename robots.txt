@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /story/
+Allow: /privacy.html
+Allow: /terms.html
+Allow: /accessibility.html
+Disallow: /quarantine/
+Crawl-delay: 1
+Sitemap: https://glycolysis-project.example/sitemap.xml
