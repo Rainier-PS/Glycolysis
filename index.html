@@ -15,7 +15,6 @@
   <meta name="twitter:description" content="Explore glycolysis through an interactive 3D molecular viewer with all 15 pathway intermediates and cofactors.">
   <meta name="google-site-verification" content="REPLACE_WITH_GOOGLE_VERIFICATION_TOKEN">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Glycolysis Interactive","description":"An interactive 3D molecular viewer for exploring the glycolysis metabolic pathway.","applicationCategory":"EducationalApplication","operatingSystem":"Web Browser","url":"https://glycolysis-project.example/"}</script>
-  <script src="vendor/3dmol/3Dmol-min.js"></script>
   <link rel="stylesheet" href="styles/landing.css">
 </head>
 <body>
@@ -71,7 +70,16 @@
   </section>
 
   <section class="viewer-section" id="viewerSection" aria-labelledby="viewer-heading">
-    <div class="viewer-inner">
+    <div class="viewer-gate" id="viewerGate" hidden>
+      <p class="viewer-gate-label">INTERACTIVE 3D VIEWER</p>
+      <h2 class="viewer-gate-heading">This viewer may run less smoothly on mobile and tablet devices.</h2>
+      <p class="viewer-gate-copy">For the smoothest experience, open this page on a desktop computer. You can continue here, or return without loading the molecular viewer.</p>
+      <div class="viewer-gate-actions">
+        <button class="viewer-gate-btn viewer-gate-btn-primary" id="viewerContinue" type="button">CONTINUE ANYWAY</button>
+        <button class="viewer-gate-btn" id="viewerBack" type="button">GO BACK</button>
+      </div>
+    </div>
+    <div class="viewer-inner" id="viewerContent">
       <div class="viewer-sidebar">
         <h2 class="viewer-heading" id="viewer-heading">Pick a molecule</h2>
         <p class="viewer-subtitle">Select a molecule to explore its interactive 3D structure.</p>

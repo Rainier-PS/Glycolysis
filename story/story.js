@@ -15,7 +15,7 @@
   let countdownTotal = 0;
   let onCountdownFire = null;
   let autoAdvanceActive = true;
-  let rotating = true;
+  let rotating = !IS_MOBILE;
   let hydrogens = false;
   let currentMolKey = null;
   let narrationEnabled = true;
@@ -663,10 +663,16 @@
   const atmosphereCanvas = document.getElementById('atmosphere');
   const actx = atmosphereCanvas.getContext('2d');
   let atmosphereState = null, atmosphereAlpha = 0, atmosphereTargetAlpha = 0, particles = [], atmosphereAnimating = false;
+  let atmosphereWidth = 0, atmosphereHeight = 0;
 
   function resizeAtmosphere() {
-    atmosphereCanvas.width = window.innerWidth;
-    atmosphereCanvas.height = window.innerHeight;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    if (width === atmosphereWidth && height === atmosphereHeight) return;
+    atmosphereWidth = width;
+    atmosphereHeight = height;
+    atmosphereCanvas.width = width;
+    atmosphereCanvas.height = height;
   }
 
   function initParticles() {
@@ -770,6 +776,7 @@
   }
 
   function startAtmosphereAnimation() {
+    if (IS_MOBILE) return;
     if (!atmosphereAnimating) {
       atmosphereAnimating = true;
       requestAnimationFrame(drawAtmosphere);
@@ -1565,6 +1572,9 @@
   }
 
   function setupControls() {
+    el.btnRotate.setAttribute('aria-pressed', String(rotating));
+    el.btnRotate.classList.toggle('active', rotating);
+
     el.btnPrev.addEventListener('click', () => {
       if (currentSceneIndex > 0) transitionToScene(currentSceneIndex - 1);
     });
@@ -1605,6 +1615,7 @@
     el.btnRotate.addEventListener('click', function () {
       rotating = !rotating;
       this.setAttribute('aria-pressed', String(rotating));
+      this.classList.toggle('active', rotating);
       try {
         if (viewer) {
           if (rotating) viewer.spin('y', .25);

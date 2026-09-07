@@ -424,6 +424,11 @@ button:focus-visible {
   position: relative;
   cursor: default;
   pointer-events: all;
+  transition: color .15s var(--ease);
+}
+
+.leg-item:hover {
+  color: var(--text);
 }
 
 .leg-dot {
@@ -432,23 +437,33 @@ button:focus-visible {
   border-radius: 50%;
   display: inline-block;
   vertical-align: middle;
+  transition: transform .15s var(--ease), box-shadow .15s var(--ease);
+}
+
+.leg-item:hover .leg-dot {
+  transform: scale(1.35);
+  box-shadow: 0 0 8px currentColor;
 }
 
 .leg-item .leg-tip {
   position: absolute;
-  bottom: 14px;
-  right: 0;
-  background: rgba(9, 11, 15, .9);
+  bottom: calc(100% + 8px);
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  background: rgba(9, 11, 15, .92);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 3px 8px;
+  border-radius: 6px;
+  padding: 5px 10px;
   white-space: nowrap;
-  font-size: 9px;
-  letter-spacing: .5px;
-  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .3px;
+  color: var(--text);
   opacity: 0;
   pointer-events: none;
-  transition: opacity .2s var(--ease);
+  transition: opacity .15s var(--ease);
+  z-index: 3;
 }
 
 .leg-item:hover .leg-tip {
@@ -831,6 +846,10 @@ button:focus-visible {
 }
 
 @media (max-width: 768px) {
+  #atmosphere {
+    display: none;
+  }
+
   .sctrl,
   .nar-btn,
   .vtb {

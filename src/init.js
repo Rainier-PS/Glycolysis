@@ -20,11 +20,34 @@
   var formulaEl = document.getElementById('viewerFormula');
   var placeholder = document.getElementById('viewerPlaceholder');
   var initialized = false;
+  var viewerGate = document.getElementById('viewerGate');
+  var viewerContent = document.getElementById('viewerContent');
+  var smallScreen = window.matchMedia('(max-width: 1024px)').matches;
+  var rendererPromise = null;
+  var initializationPromise = null;
 
-  function selectMolecule(key) {
+  function loadRenderer() {
+    if (rendererPromise) return rendererPromise;
+    if (typeof $3Dmol !== 'undefined') return Promise.resolve();
+    rendererPromise = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = 'vendor/3dmol/3Dmol-min.js';
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+    return rendererPromise;
+  }
+
+  async function selectMolecule(key) {
     if (!initialized) {
-      V.init('viewer3d');
-      initialized = true;
+      if (!initializationPromise) {
+        initializationPromise = loadRenderer().then(function () {
+          V.init('viewer3d');
+          initialized = true;
+        });
+      }
+      await initializationPromise;
     }
     setActive(key);
     var mol = V.MOLECULE_MAP[key];
@@ -36,6 +59,23 @@
       formulaEl.textContent = mol.formula;
     }
     V.display(key);
+  }
+
+  function showViewer() {
+    viewerGate.hidden = true;
+    viewerContent.hidden = false;
+    selectMolecule('glucose');
+  }
+
+  if (smallScreen) {
+    viewerGate.hidden = false;
+    viewerContent.hidden = true;
+    document.getElementById('viewerContinue').addEventListener('click', showViewer);
+    document.getElementById('viewerBack').addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  } else {
+    showViewer();
   }
 
   V.MOLECULES.forEach(function (mol) {
@@ -82,5 +122,4 @@
     }
   });
 
-  selectMolecule('glucose');
 })();
