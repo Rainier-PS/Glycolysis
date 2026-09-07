@@ -186,12 +186,31 @@ h1 {
 .story-arrow {
   padding-left: 20px;
   color: var(--accent);
-  font-size: 27px;
   line-height: 1;
-  font-weight: 300;
+}
+
+.story-arrow svg,
+.scroll-cue svg,
+.footer-back-top svg {
+  width: 1.15em;
+  height: 1.15em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: middle;
+}
+
+.story-arrow svg {
+  width: 27px;
+  height: 27px;
 }
 
 .scroll-cue {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   position: absolute;
   left: 0;
   bottom: 40px;
@@ -202,6 +221,13 @@ h1 {
   font-weight: 400;
   letter-spacing: .25em;
   text-transform: uppercase;
+}
+
+.scroll-cue svg {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
 }
 
 .page-context {
@@ -238,12 +264,13 @@ h1 {
 @media (max-width: 768px) {
   .hero {
     height: auto;
-    min-height: 100svh;
+    min-height: 0;
   }
 
   .hero-content {
     width: calc(100% - 40px);
-    padding: 112px 0 96px;
+    padding: 88px 0 42px;
+    flex-direction: column;
     align-items: center;
   }
 
@@ -294,9 +321,7 @@ h1 {
   }
 
   .page-context {
-    top: 28px;
-    right: 24px;
-    font-size: 10px;
+    display: none;
   }
 
   .hero-molecule {
@@ -308,9 +333,13 @@ h1 {
   }
 
   .scroll-cue {
+    position: static;
     left: 0;
-    bottom: 32px;
+    align-self: flex-start;
+    width: 100%;
+    margin-top: 42px;
     font-size: 10px;
+    line-height: 1.4;
     letter-spacing: .2em;
   }
 }
@@ -318,8 +347,8 @@ h1 {
 @media (max-width: 430px) {
   .hero-content {
     width: calc(100% - 32px);
-    padding-top: 100px;
-    padding-bottom: 86px;
+    padding-top: 76px;
+    padding-bottom: 34px;
   }
 
   .eyebrow {

@@ -602,6 +602,26 @@ button:focus-visible {
   justify-content: center;
 }
 
+.sctrl svg,
+.nar-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: middle;
+  flex: 0 0 18px;
+}
+
+.sctrl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
 .sctrl:hover {
   color: var(--text);
   border-color: rgba(255, 255, 255, .2);
@@ -704,6 +724,9 @@ button:focus-visible {
   opacity: 1;
 }
 
+#mobileToolsToggle {
+  display: none;
+}
 
 
 .nar-btn {
@@ -723,6 +746,7 @@ button:focus-visible {
   letter-spacing: 1px;
   padding: 0 10px;
   min-width: 44px;
+  gap: 7px;
 }
 
 .nar-btn:hover {
@@ -846,10 +870,6 @@ button:focus-visible {
 }
 
 @media (max-width: 768px) {
-  #atmosphere {
-    display: none;
-  }
-
   .sctrl,
   .nar-btn,
   .vtb {
@@ -860,9 +880,12 @@ button:focus-visible {
 
   #viewport,
   #atmosphere,
-  #caption,
   #captionText {
     transform: translateZ(0);
+  }
+
+  #caption {
+    transform: translateX(-50%) translateZ(0);
   }
 
   #captionText {
@@ -875,18 +898,52 @@ button:focus-visible {
   }
 
   #caption {
-    bottom: clamp(100px, 18vh, 160px);
+    bottom: clamp(192px, 25vh, 236px);
+    width: calc(100vw - 32px);
+    max-width: calc(100vw - 32px);
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: rgba(9, 11, 15, .72);
   }
 
   #enzymeLabel {
     left: 16px;
     top: auto;
-    bottom: 22vh;
+    bottom: clamp(300px, 36vh, 340px);
     transform: none;
+    max-width: calc(100vw - 32px);
+    padding: 7px 10px;
+    border-radius: 6px;
+    background: rgba(9, 11, 15, .72);
+  }
+
+  .enzyme-name {
+    margin-bottom: 3px;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+  }
+
+  .enzyme-reaction {
+    max-width: 100%;
+    font-size: 11px;
+    line-height: 1.35;
   }
 
   #molLabel {
-    top: 16px;
+    top: calc(148px + env(safe-area-inset-top));
+    max-width: calc(100vw - 32px);
+  }
+
+  #molLabelFormula,
+  #sceneLabel,
+  #accounting,
+  #deepDetail {
+    display: none !important;
+  }
+
+  .mol-label-name {
+    font-size: clamp(16px, 5vw, 21px);
+    line-height: 1.15;
   }
 
   #stepCounter {
@@ -899,53 +956,162 @@ button:focus-visible {
     left: 16px;
   }
 
-  #accounting {
-    bottom: 16px;
+  #sceneControls {
     left: 16px;
-    font-size: 10px;
-  }
-
-  .acc-item {
-    font-size: 10px;
+    right: 16px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    width: auto;
+    transform: none;
     gap: 6px;
   }
 
-  .acc-item .acc-val {
-    font-size: 14px;
+  #countdownText {
+    min-height: 14px;
   }
 
-  #sceneControls {
-    bottom: 16px;
+  #navRow {
+    width: 100%;
+    justify-content: center;
   }
 
   .sctrl {
-    padding: 8px 14px;
+    flex: 1 1 0;
+    padding: 8px 10px;
     font-size: 10px;
     min-height: 44px;
+    max-width: 132px;
   }
 
   #legend {
-    bottom: 16px;
+    display: none;
+    bottom: calc(144px + env(safe-area-inset-bottom));
     right: 16px;
+    gap: 8px;
+    max-width: calc(100vw - 180px);
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    line-height: 1.4;
   }
 
   #viewerToolbar {
-    bottom: 60px;
+    display: none;
     right: 16px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: calc(100vw - 32px);
+  }
+
+  #mobileToolsToggle {
+    position: fixed;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    left: 16px;
+    right: 16px;
+    bottom: calc(88px + env(safe-area-inset-bottom));
+    z-index: 26;
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: rgba(12, 15, 20, .94);
+    color: var(--muted);
+    font-family: var(--display);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1.2px;
+    text-align: left;
+  }
+
+  #mobileToolsToggle span {
+    color: var(--accent);
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  body.mobile-tools-open #mobileToolsToggle {
+    color: var(--accent);
+    border-color: rgba(215, 255, 95, .35);
+    bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+
+  body.mobile-tools-open #mobileToolsToggle span {
+    transform: rotate(45deg);
+  }
+
+  body.mobile-tools-open #viewerToolbar,
+  body.mobile-tools-open #legend {
+    display: flex;
+  }
+
+  body.mobile-tools-open #viewerToolbar {
+    left: 16px;
+    right: 16px;
+    bottom: calc(150px + env(safe-area-inset-bottom));
+    justify-content: space-between;
+    max-width: none;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: rgba(9, 11, 15, .9);
+  }
+
+  body.mobile-tools-open #viewerToolbar .vtb {
+    flex: 1 1 0;
+    min-height: 36px;
+  }
+
+  body.mobile-tools-open #legend {
+    left: 16px;
+    right: 16px;
+    bottom: calc(112px + env(safe-area-inset-bottom));
+    max-width: none;
+    justify-content: center;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: rgba(9, 11, 15, .9);
   }
 
   #navControls {
     left: 16px;
-    top: 48px;
+    top: calc(16px + env(safe-area-inset-top));
+    gap: 0;
   }
 
   #narrationControls {
-    right: 16px;
-    top: 48px;
+    left: calc(50% - 20px);
+    right: auto;
+    top: auto;
+    bottom: calc(142px + env(safe-area-inset-bottom));
+    gap: 6px;
   }
 
   .nar-btn {
     height: 40px;
+    width: 40px;
+    min-width: 40px;
+    padding: 0;
+    font-size: 0;
+  }
+
+  #navControls #btnRestart {
+    position: fixed;
+    left: calc(50% - 66px);
+    bottom: calc(142px + env(safe-area-inset-bottom));
+  }
+
+  .nar-btn span {
+    display: none;
+  }
+
+  .nar-btn {
+    gap: 0;
+  }
+
+  #btnHome {
+    color: var(--text);
+    border-color: rgba(255, 255, 255, .14);
   }
 
   #loadingScreen .loader-title {
@@ -956,12 +1122,74 @@ button:focus-visible {
     display: none;
   }
 
+  #overallEquation {
+    font-size: 11px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    max-width: calc(100vw - 32px);
+  }
+
+  #molecularCaveat {
+    display: none;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  #sceneLabel,
+  #stepCounter {
+    top: 22px;
+  }
+
+  #sceneLabel,
+  #navControls,
+  #enzymeLabel,
+  #accounting,
+  #molecularCaveat {
+    left: 24px;
+  }
+
+  #stepCounter,
+  #narrationControls,
+  #legend,
+  #viewerToolbar {
+    right: 24px;
+  }
+
+  #navControls,
+  #narrationControls {
+    top: 48px;
+  }
+
+  #caption {
+    bottom: clamp(116px, 17vh, 156px);
+    max-width: min(620px, calc(100vw - 48px));
+  }
+
   #deepDetail {
-    bottom: clamp(170px, 26vh, 260px);
+    bottom: clamp(180px, 25vh, 230px);
+    max-width: min(580px, calc(100vw - 48px));
+  }
+
+  #sceneControls {
+    bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+
+  #accounting,
+  #overallEquation,
+  #legend {
+    bottom: calc(24px + env(safe-area-inset-bottom));
   }
 
   #overallEquation {
-    font-size: 11px;
-    bottom: 16px;
+    max-width: min(520px, calc(100vw - 360px));
+  }
+
+  #viewerToolbar {
+    bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 768px) and (max-height: 700px) {
+  #deepDetail {
+    display: none;
   }
 }

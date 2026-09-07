@@ -776,7 +776,6 @@
   }
 
   function startAtmosphereAnimation() {
-    if (IS_MOBILE) return;
     if (!atmosphereAnimating) {
       atmosphereAnimating = true;
       requestAnimationFrame(drawAtmosphere);
@@ -970,7 +969,7 @@
     'enzymeLabel', 'enzymeName', 'enzymeReaction', 'accounting', 'legend',
     'fadeOverlay', 'loadingIndicator', 'srLive', 'btnPrev', 'btnNext', 'btnStay', 'btnPause',
     'btnRotate', 'btnHydrogen', 'btnReset', 'viewerToolbar',
-    'navControls', 'narrationControls', 'btnNarration', 'btnHome', 'btnRestart', 'deepDetail', 'deepDetailText', 'overallEquation', 'molFallback', 'srMolDesc'
+    'navControls', 'narrationControls', 'btnNarration', 'btnHome', 'btnRestart', 'mobileToolsToggle', 'deepDetail', 'deepDetailText', 'overallEquation', 'molFallback', 'srMolDesc'
   ].forEach(id => {
     el[id] = document.getElementById(id);
   });
@@ -1343,7 +1342,8 @@
 
     // 4. Update UI
     el.countdownText.textContent = 'PAUSED';
-    el.btnPause.textContent = 'PLAY';
+    el.btnPause.querySelector('span').textContent = 'PLAY';
+    el.btnPause.querySelector('path').setAttribute('d', 'M8 5l11 7-11 7z');
     el.btnPause.classList.add('paused-state');
     el.btnPause.setAttribute('aria-pressed', 'true');
     el.btnPause.setAttribute('aria-label', 'Resume story (P)');
@@ -1417,7 +1417,8 @@
     }
 
     // 5. Update UI
-    el.btnPause.textContent = 'PAUSE';
+    el.btnPause.querySelector('span').textContent = 'PAUSE';
+    el.btnPause.querySelector('path').setAttribute('d', 'M7 5v14M17 5v14');
     el.btnPause.classList.remove('paused-state');
     el.btnPause.setAttribute('aria-pressed', 'false');
     el.btnPause.setAttribute('aria-label', 'Pause story (P)');
@@ -1427,6 +1428,21 @@
   function togglePause() {
     if (storyPaused) resumeStory();
     else pauseStory();
+  }
+
+  function mobileReactionText(reaction) {
+    return reaction
+      .replaceAll('Glucose-6-phosphate', 'G6P')
+      .replaceAll('Fructose-6-phosphate', 'F6P')
+      .replaceAll('Fructose-1,6-bisphosphate', 'FBP')
+      .replaceAll('Glyceraldehyde-3-phosphate', 'G3P')
+      .replaceAll('1,3-bisphosphoglycerate', '1,3-BPG')
+      .replaceAll('3-Phosphoglycerate', '3-PG')
+      .replaceAll('2-Phosphoglycerate', '2-PG')
+      .replaceAll('Phosphoenolpyruvate', 'PEP')
+      .replaceAll('Pyruvate', 'Pyruvate')
+      .replaceAll('NAD⁺', 'NAD+')
+      .replaceAll('NADH', 'NADH');
   }
 
   async function transitionToScene(index, immediate) {
@@ -1482,7 +1498,9 @@
     }
     if (scene.enzyme) {
       el.enzymeName.textContent = scene.enzyme;
-      el.enzymeReaction.innerHTML = scene.reaction || '';
+      el.enzymeReaction.textContent = IS_MOBILE && scene.reaction
+        ? mobileReactionText(scene.reaction)
+        : scene.reaction || '';
       el.enzymeLabel.classList.add('visible');
     } else {
       el.enzymeLabel.classList.remove('visible');
@@ -1647,6 +1665,11 @@
         }, 100);
       } catch (e) {}
       el.srLive.textContent = 'Camera view reset';
+    });
+    el.mobileToolsToggle.addEventListener('click', () => {
+      const isOpen = document.body.classList.toggle('mobile-tools-open');
+      el.mobileToolsToggle.setAttribute('aria-expanded', String(isOpen));
+      el.mobileToolsToggle.lastElementChild.textContent = isOpen ? '\u00d7' : '+';
     });
     document.addEventListener('keydown', e => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
