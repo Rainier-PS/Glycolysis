@@ -3,6 +3,7 @@
 
   const BG = 0x090B0F;
   const PREFERS_REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const IS_MOBILE = window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   let sceneToken = 0;
   let narrationSeqToken = 0;
@@ -23,37 +24,25 @@
   let molTransitionSeq = 0;
   let storyPaused = false;
   let pauseStart = 0;
-  let pauseGate = Promise.resolve();
-  let pauseGateRelease = null;
-
-  function newPauseGate() {
-    pauseGate = storyPaused
-      ? new Promise(resolve => {
-          pauseGateRelease = resolve;
-        })
-      : Promise.resolve();
-  }
 
   function wait(ms) {
     return new Promise(resolve => {
-      let elapsed = 0;
+      let remaining = ms;
+      let lastTime = Date.now();
       let timer = null;
-      function step() {
-        if (elapsed >= ms) {
+      function check() {
+        const now = Date.now();
+        if (!storyPaused) {
+          remaining -= (now - lastTime);
+        }
+        lastTime = now;
+        if (remaining <= 0) {
           resolve();
           return;
         }
-        if (storyPaused) {
-          pauseGate.then(step);
-          return;
-        }
-        const slice = Math.min(50, ms - elapsed);
-        timer = setTimeout(() => {
-          elapsed += slice;
-          step();
-        }, slice);
+        timer = setTimeout(check, 40);
       }
-      step();
+      timer = setTimeout(check, Math.min(40, remaining));
     });
   }
 
@@ -65,7 +54,7 @@
         ls.remove();
       }, 900);
     }
-    showUI(['narrationControls']);
+    showUI(['navControls', 'narrationControls']);
   }
 
   const MOL = {
@@ -287,7 +276,7 @@
       id: 'atp-explain',
       phase: 'intro',
       molecule: 'atp',
-      camera: { zoom: .85, spin: true, speed: .2 },
+      camera: { zoom: .85, speed: .2 },
       captions: [
         cap('ATP is a central chemical energy-transfer molecule used throughout the cell.', 5000, 'ATP stands for adenosine triphosphate. It has three phosphate groups. Cells use ATP to drive reactions that would otherwise be energetically unfavorable.'),
         cap('In glycolysis, ATP can donate a phosphoryl group to an intermediate, helping drive the pathway forward.', 5500, 'This is not ATP hydrolysis producing energy directly. Instead, ATP donates phosphoryl groups to specific carbon positions on the sugar substrate.')
@@ -302,7 +291,7 @@
       id: 'glucose-explain',
       phase: 'intro',
       molecule: 'glucose',
-      camera: { zoom: .85, spin: true, speed: .25 },
+      camera: { zoom: .85, speed: .25 },
       captions: [
         cap('This is glucose. A six-carbon sugar.', 2500, 'The structure shown is \u03B2-D-glucopyranose, a cyclic form of glucose.'),
         cap('Glucose is a six-carbon fuel molecule that cells can progressively break down and oxidize.', 5000)
@@ -317,7 +306,7 @@
       id: 'two-phases',
       phase: 'intro',
       molecule: 'glucose',
-      camera: { zoom: 1.0, spin: false },
+      camera: { zoom: 1.0 },
       captions: [
         cap('Glycolysis has two phases.', 2000),
         cap('First, the energy investment phase. The cell spends two ATP to prepare glucose for splitting.', 5000, 'Reactions 1 through 5: the six-carbon sugar is phosphorylated and rearranged, then cleaved into two three-carbon molecules.'),
@@ -333,7 +322,7 @@
       phase: 'investment',
       molecule: 'glucose',
       reactionNumber: 1,
-      camera: { zoom: .82, spin: true, speed: .15 },
+      camera: { zoom: .82, speed: .15 },
       captions: [
         cap('Reaction 1. Hexokinase.', 2500),
         cap('ATP donates a phosphoryl group to glucose.', 3500, 'A phosphoryl group is a phosphate group transferred as part of a chemical reaction. Hexokinase catalyzes this transfer.'),
@@ -352,7 +341,7 @@
       phase: 'investment',
       molecule: 'g6p',
       reactionNumber: 2,
-      camera: { zoom: .85, spin: true, speed: .2 },
+      camera: { zoom: .85, speed: .2 },
       captions: [
         cap('Reaction 2. Phosphoglucose isomerase.', 2500),
         cap('The molecule is rearranged into a different form.', 3000),
@@ -370,7 +359,7 @@
       phase: 'investment',
       molecule: 'f6p',
       reactionNumber: 3,
-      camera: { zoom: .82, spin: true, speed: .15 },
+      camera: { zoom: .82, speed: .15 },
       captions: [
         cap('Reaction 3. Phosphofructokinase-1.', 3000),
         cap('A second phosphoryl group is added. This costs another ATP.', 4000),
@@ -388,7 +377,7 @@
       phase: 'investment',
       molecule: 'fbp',
       reactionNumber: null,
-      camera: { zoom: 1.0, spin: false },
+      camera: { zoom: 1.0 },
       captions: [
         cap('Two ATP have now been invested.', 2500),
         cap('The six-carbon sugar is prepared for the crucial split.', 3500)
@@ -405,7 +394,7 @@
       phase: 'investment',
       molecule: 'fbp',
       reactionNumber: 4,
-      camera: { zoom: .7, spin: true, speed: .1 },
+      camera: { zoom: .7, speed: .1 },
       captions: [
         cap('Reaction 4. Aldolase.', 2500),
         cap('The six-carbon molecule is split into two three-carbon molecules.', 4000, 'Fructose-1,6-bisphosphate is cleaved into dihydroxyacetone phosphate (DHAP) and glyceraldehyde-3-phosphate (G3P). This is the central cleavage of glycolysis. The two products are not yet identical.')
@@ -421,7 +410,7 @@
       phase: 'investment',
       molecule: 'g3p',
       reactionNumber: 5,
-      camera: { zoom: .88, spin: true, speed: .2 },
+      camera: { zoom: .88, speed: .2 },
       captions: [
         cap('Reaction 5. Triose phosphate isomerase.', 3000),
         cap('One of the two three-carbon molecules is rearranged into the other form.', 4000, 'DHAP is converted to glyceraldehyde-3-phosphate. Only G3P continues directly through the payoff phase.'),
@@ -440,7 +429,7 @@
       phase: 'payoff',
       molecule: 'g3p',
       reactionNumber: 6,
-      camera: { zoom: .85, spin: true, speed: .15 },
+      camera: { zoom: .85, speed: .15 },
       captions: [
         cap('Reaction 6. Glyceraldehyde-3-phosphate dehydrogenase.', 3500),
         cap('The carbon molecule is oxidized. NAD\u207A accepts electrons and is reduced to NADH.', 3500, 'Oxidation means the loss of electrons or reducing equivalents. Here, the aldehyde group of G3P is oxidized. NAD\u207A accepts those electrons and is reduced to NADH, a reduced electron carrier that carries high-energy electrons for subsequent metabolic reactions.'),
@@ -457,7 +446,7 @@
       phase: 'payoff',
       molecule: 'bpg13',
       reactionNumber: 7,
-      camera: { zoom: .88, spin: true, speed: .2 },
+      camera: { zoom: .88, speed: .2 },
       captions: [
         cap('Reaction 7. Phosphoglycerate kinase.', 3000),
         cap('A phosphoryl group is transferred from 1,3-bisphosphoglycerate to ADP.', 4000),
@@ -474,7 +463,7 @@
       phase: 'payoff',
       molecule: 'pg3',
       reactionNumber: 8,
-      camera: { zoom: .88, spin: true, speed: .2 },
+      camera: { zoom: .88, speed: .2 },
       captions: [
         cap('Reaction 8. Phosphoglycerate mutase.', 3000),
         cap('The phosphoryl group is moved to a different position on the molecule.', 4000, '3-phosphoglycerate is rearranged to 2-phosphoglycerate. The same phosphate group is relocated. This prepares the molecule for dehydration.')
@@ -490,7 +479,7 @@
       phase: 'payoff',
       molecule: 'pg2',
       reactionNumber: 9,
-      camera: { zoom: .82, spin: true, speed: .15 },
+      camera: { zoom: .82, speed: .15 },
       captions: [
         cap('Reaction 9. Enolase.', 2500),
         cap('Water is removed from the molecule.', 3000),
@@ -507,7 +496,7 @@
       phase: 'payoff',
       molecule: 'pep',
       reactionNumber: 10,
-      camera: { zoom: .82, spin: true, speed: .15 },
+      camera: { zoom: .82, speed: .15 },
       captions: [
         cap('Reaction 10. Pyruvate kinase.', 3000),
         cap('The phosphoryl group is transferred from PEP to ADP.', 3500),
@@ -525,7 +514,7 @@
       phase: 'accounting',
       molecule: 'pyruvate',
       reactionNumber: null,
-      camera: { zoom: .9, spin: true, speed: .15 },
+      camera: { zoom: .9, speed: .15 },
       captions: [
         cap('Two pyruvate molecules remain.', 2500)
       ],
@@ -541,7 +530,7 @@
       phase: 'accounting',
       molecule: 'pyruvate',
       reactionNumber: null,
-      camera: { zoom: 1.1, spin: false },
+      camera: { zoom: 1.1 },
       captions: [
         cap('ATP accounting.', 2000),
         cap('Two ATP were invested in the early reactions.', 3000),
@@ -560,7 +549,7 @@
       phase: 'accounting',
       molecule: 'pyruvate',
       reactionNumber: null,
-      camera: { zoom: 1.0, spin: false },
+      camera: { zoom: 1.0 },
       captions: [
         cap('Two NAD\u207A were reduced to two NADH.', 3500, 'NADH is a reduced electron carrier. Its electrons can ultimately contribute to oxidative metabolism, with cytosolic reducing equivalents transferred through cellular shuttle systems.'),
         cap('NAD\u207A must be regenerated for glycolysis to continue.', 4000, 'Reaction 6 requires NAD\u207A. Without regeneration, glycolysis would stop. In aerobic cells, NADH donates electrons to mitochondrial respiration. When oxygen is unavailable, fermentation regenerates NAD\u207A.')
@@ -577,7 +566,7 @@
       phase: 'accounting',
       molecule: 'pyruvate',
       reactionNumber: null,
-      camera: { zoom: 1.0, spin: false },
+      camera: { zoom: 1.0 },
       captions: [
         cap('Carbon accounting.', 2000),
         cap('One six-carbon glucose has become two three-carbon pyruvate molecules.', 4500),
@@ -596,7 +585,7 @@
       phase: 'downstream',
       molecule: 'pyruvate',
       reactionNumber: null,
-      camera: { zoom: 1.0, spin: false },
+      camera: { zoom: 1.0 },
       captions: [
         cap('Glycolysis itself does not directly require molecular oxygen.', 4000),
         cap('It can occur when oxygen is available or unavailable.', 3500),
@@ -614,7 +603,7 @@
       phase: 'downstream',
       molecule: 'pyruvate',
       reactionNumber: null,
-      camera: { zoom: 1.1, spin: false },
+      camera: { zoom: 1.1 },
       captions: [
         cap('In aerobic cells, NADH can contribute electrons to mitochondrial respiration.', 4500),
         cap('When oxygen is unavailable, fermentation pathways regenerate NAD\u207A.', 4000, 'In lactic acid fermentation, pyruvate is reduced to lactate while NADH is oxidized back to NAD\u207A. This allows glycolysis to continue. Fermentation does not generate additional ATP beyond glycolysis.'),
@@ -632,7 +621,7 @@
       phase: 'downstream',
       molecule: 'pyruvate',
       reactionNumber: null,
-      camera: { zoom: 1.0, spin: false },
+      camera: { zoom: 1.0 },
       captions: [
         cap('Why does glycolysis matter?', 2000),
         cap('It can generate ATP rapidly without directly consuming molecular oxygen.', 3500),
@@ -682,15 +671,15 @@
 
   function initParticles() {
     particles = [];
-    const c = PREFERS_REDUCED ? 20 : 60;
+    const c = PREFERS_REDUCED ? 10 : (IS_MOBILE ? 15 : 45);
     for (let i = 0; i < c; i++)
       particles.push({
         x: Math.random() * innerWidth,
         y: Math.random() * innerHeight,
         r: Math.random() * 1.5 + .3,
-        vx: (Math.random() - .5) * .3,
-        vy: (Math.random() - .5) * .2,
-        alpha: Math.random() * .3 + .05,
+        vx: (Math.random() - .5) * .25,
+        vy: (Math.random() - .5) * .18,
+        alpha: Math.random() * .25 + .05,
         pulse: Math.random() * Math.PI * 2
       });
   }
@@ -699,8 +688,7 @@
     if (PREFERS_REDUCED || !atmosphereAnimating) return;
     const w = atmosphereCanvas.width, h = atmosphereCanvas.height;
     actx.clearRect(0, 0, w, h);
-    atmosphereAlpha += (atmosphereTargetAlpha - atmosphereAlpha) * .03;
-    const settling = Math.abs(atmosphereTargetAlpha - atmosphereAlpha) > .005;
+    atmosphereAlpha += (atmosphereTargetAlpha - atmosphereAlpha) * .05;
     if (atmosphereAlpha < .005 && atmosphereTargetAlpha === 0) {
       atmosphereAlpha = 0;
       atmosphereCanvas.classList.remove('visible');
@@ -708,7 +696,10 @@
       return;
     }
     atmosphereCanvas.style.opacity = atmosphereAlpha;
-    if (!atmosphereState) return;
+    if (!atmosphereState) {
+      if (atmosphereAnimating) requestAnimationFrame(drawAtmosphere);
+      return;
+    }
     const cx = w / 2, cy = h / 2, cellR = Math.min(w, h) * .35;
     let zoom = 1;
     if (atmosphereState === 'approach') zoom = 1.3;
@@ -718,36 +709,32 @@
     actx.translate(cx, cy);
     actx.scale(zoom, zoom);
     actx.translate(-cx, -cy);
-    const mg = actx.createRadialGradient(cx, cy, cellR * .9, cx, cy, cellR * 1.05);
-    mg.addColorStop(0, 'rgba(140,180,220,0.04)');
-    mg.addColorStop(.5, 'rgba(140,180,220,0.12)');
-    mg.addColorStop(1, 'rgba(140,180,220,0.02)');
-    actx.fillStyle = mg;
+
+    actx.fillStyle = 'rgba(140,180,220,0.06)';
     actx.beginPath();
     actx.arc(cx, cy, cellR * 1.05, 0, Math.PI * 2);
     actx.fill();
+
     actx.strokeStyle = 'rgba(140,180,220,0.15)';
     actx.lineWidth = 1.5;
     actx.beginPath();
     actx.arc(cx, cy, cellR, 0, Math.PI * 2);
     actx.stroke();
-    const ig = actx.createRadialGradient(cx, cy, 0, cx, cy, cellR * .8);
-    ig.addColorStop(0, 'rgba(100,150,200,0.04)');
-    ig.addColorStop(1, 'rgba(60,100,150,0.01)');
-    actx.fillStyle = ig;
+
+    actx.fillStyle = 'rgba(100,150,200,0.03)';
     actx.beginPath();
     actx.arc(cx, cy, cellR * .8, 0, Math.PI * 2);
     actx.fill();
+
     actx.strokeStyle = 'rgba(160,200,240,0.1)';
     actx.lineWidth = 1;
     actx.beginPath();
     actx.arc(cx + cellR * .02, cy - cellR * .05, cellR * .22, 0, Math.PI * 2);
     actx.stroke();
-    const ng = actx.createRadialGradient(cx + cellR * .02, cy - cellR * .05, 0, cx + cellR * .02, cy - cellR * .05, cellR * .22);
-    ng.addColorStop(0, 'rgba(140,180,240,0.06)');
-    ng.addColorStop(1, 'rgba(80,120,180,0.01)');
-    actx.fillStyle = ng;
+
+    actx.fillStyle = 'rgba(140,180,240,0.04)';
     actx.fill();
+
     [
       { x: cx - cellR * .35, y: cy - cellR * .25, a: .4, w: cellR * .16, h: cellR * .06 },
       { x: cx + cellR * .3, y: cy - cellR * .2, a: -.5, w: cellR * .14, h: cellR * .05 },
@@ -762,13 +749,10 @@
       actx.beginPath();
       actx.ellipse(0, 0, m.w, m.h, 0, 0, Math.PI * 2);
       actx.stroke();
-      actx.strokeStyle = 'rgba(215,255,95,0.07)';
-      actx.beginPath();
-      actx.ellipse(0, 0, m.w * .6, m.h * .5, 0, 0, Math.PI * 2);
-      actx.stroke();
       actx.restore();
     });
-    const t = time * .001;
+
+    const t = (time || 0) * .001;
     particles.forEach(p => {
       p.x += p.vx;
       p.y += p.vy;
@@ -782,7 +766,7 @@
       actx.fill();
     });
     actx.restore();
-    if (settling) requestAnimationFrame(drawAtmosphere);
+    if (atmosphereAnimating) requestAnimationFrame(drawAtmosphere);
   }
 
   function startAtmosphereAnimation() {
@@ -796,7 +780,7 @@
 
   function initViewer() {
     try {
-      viewer = $3Dmol.createViewer('molViewer', { backgroundColor: BG, antialias: true, disableFog: true });
+      viewer = $3Dmol.createViewer('molViewer', { backgroundColor: BG, antialias: !IS_MOBILE, disableFog: true });
     } catch (e) {
       viewer = null;
     }
@@ -815,7 +799,7 @@
           return;
         }
         try {
-          viewer = $3Dmol.createViewer('molViewer', { backgroundColor: BG, antialias: true, disableFog: true });
+          viewer = $3Dmol.createViewer('molViewer', { backgroundColor: BG, antialias: !IS_MOBILE, disableFog: true });
           if (viewer) { resolve(viewer); return; }
         } catch (e) {}
         attempt++;
@@ -979,7 +963,7 @@
     'enzymeLabel', 'enzymeName', 'enzymeReaction', 'accounting', 'legend',
     'fadeOverlay', 'loadingIndicator', 'srLive', 'btnPrev', 'btnNext', 'btnStay', 'btnPause',
     'btnRotate', 'btnHydrogen', 'btnReset', 'viewerToolbar',
-    'narrationControls', 'btnNarration', 'btnHome', 'deepDetail', 'deepDetailText', 'overallEquation', 'molFallback', 'srMolDesc'
+    'navControls', 'narrationControls', 'btnNarration', 'btnHome', 'btnRestart', 'deepDetail', 'deepDetailText', 'overallEquation', 'molFallback', 'srMolDesc'
   ].forEach(id => {
     el[id] = document.getElementById(id);
   });
@@ -1022,14 +1006,18 @@
   }
 
   let onSpeechEnd = null;
+  let isNarratingSpeech = false;
 
   function speakNarration(text, onEnd, seq) {
     if (!('speechSynthesis' in window) || !narrationEnabled) {
+      isNarratingSpeech = false;
       if (onEnd) onEnd();
       return;
     }
     if (currentUtterance) {
-      speechSynthesis.cancel();
+      try {
+        speechSynthesis.cancel();
+      } catch (e) {}
     }
     const u = new SpeechSynthesisUtterance(text);
     const voice = getNarratorVoice();
@@ -1039,26 +1027,33 @@
     u.volume = narrationVolume;
     u.lang = 'en-US';
     currentUtterance = u;
+    isNarratingSpeech = true;
     u.onend = () => {
       currentUtterance = null;
-      if (seq === narrationSeqToken && onEnd) onEnd();
+      isNarratingSpeech = false;
+      if (seq === narrationSeqToken && !storyPaused && onEnd) onEnd();
     };
     u.onerror = () => {
       currentUtterance = null;
-      if (seq === narrationSeqToken && onEnd) onEnd();
+      isNarratingSpeech = false;
+      if (seq === narrationSeqToken && !storyPaused && onEnd) onEnd();
     };
     try {
       speechSynthesis.speak(u);
     } catch (e) {
       currentUtterance = null;
-      if (seq === narrationSeqToken && onEnd) onEnd();
+      isNarratingSpeech = false;
+      if (seq === narrationSeqToken && !storyPaused && onEnd) onEnd();
     }
   }
 
   function stopNarration() {
     if ('speechSynthesis' in window) {
-      speechSynthesis.cancel();
+      try {
+        speechSynthesis.cancel();
+      } catch (e) {}
       currentUtterance = null;
+      isNarratingSpeech = false;
     }
     narrationSeqToken++;
   }
@@ -1069,88 +1064,131 @@
       el.btnNarration.setAttribute('aria-pressed', String(narrationEnabled));
       el.btnNarration.classList.toggle('active', narrationEnabled);
       el.btnNarration.textContent = narrationEnabled ? 'NARRATION' : 'NARRATION OFF';
-      if (!narrationEnabled) stopNarration();
+      if (!narrationEnabled) {
+        stopNarration();
+      } else if (!storyPaused && !captionsComplete && currentCaptionIndex >= 0 && activeCaptions && activeCaptions[currentCaptionIndex]) {
+        const c = activeCaptions[currentCaptionIndex];
+        const seq = ++narrationSeqToken;
+        speakNarration(c.text, () => {
+          if (seq !== narrationSeqToken || storyPaused) return;
+          el.captionText.classList.remove('show');
+          if (el.deepDetail) el.deepDetail.classList.remove('show');
+          captionTimer = setTimeout(() => {
+            captionTimer = null;
+            if (storyPaused) return;
+            showCaptionAtIndex(currentCaptionIndex + 1);
+          }, 400);
+        }, seq);
+      }
       el.srLive.textContent = narrationEnabled ? 'Narration enabled' : 'Narration disabled';
     });
     el.btnNarration.classList.add('active');
   }
 
-  let currentCaptionIndex = -1, captionsComplete = false;
+  let activeCaptions = [];
+  let currentCaptionIndex = -1;
+  let captionsComplete = false;
   let captionTimer = null;
+  let captionStartTime = 0;
+  let captionDurationMs = 0;
+  let captionRemainingMs = 0;
+  let currentCaptionSeq = 0;
+  let currentCaptionOnDone = null;
 
   function clearCaptions() {
+    if (captionTimer) {
+      clearTimeout(captionTimer);
+      captionTimer = null;
+    }
+    activeCaptions = [];
     currentCaptionIndex = -1;
     captionsComplete = false;
-    el.captionText.classList.remove('show');
-    el.captionText.textContent = '';
-    el.deepDetail.classList.remove('show');
-    el.deepDetailText.textContent = '';
+    captionStartTime = 0;
+    captionDurationMs = 0;
+    captionRemainingMs = 0;
+    currentCaptionOnDone = null;
+    isNarratingSpeech = false;
+    if (el.captionText) {
+      el.captionText.classList.remove('show');
+      el.captionText.textContent = '';
+    }
+    if (el.deepDetail) {
+      el.deepDetail.classList.remove('show');
+    }
+    if (el.deepDetailText) {
+      el.deepDetailText.textContent = '';
+    }
   }
 
   function playCaptions(captions, onDone, seq) {
     clearCaptions();
-    if (!captions || captions.length === 0) {
+    activeCaptions = captions || [];
+    currentCaptionSeq = seq;
+    currentCaptionOnDone = onDone;
+    if (!activeCaptions || activeCaptions.length === 0) {
+      captionsComplete = true;
       if (onDone) onDone();
       return;
     }
+    showCaptionAtIndex(0);
+  }
+
+  function showCaptionAtIndex(idx) {
+    if (currentCaptionSeq !== narrationSeqToken || sceneToken !== parseInt(el.stepCounter.dataset.token || '0')) return;
+    if (idx >= activeCaptions.length) {
+      captionsComplete = true;
+      if (el.deepDetail) el.deepDetail.classList.remove('show');
+      if (currentCaptionOnDone) currentCaptionOnDone();
+      return;
+    }
+    currentCaptionIndex = idx;
+    const c = activeCaptions[idx];
+    el.captionText.textContent = c.text;
+    el.captionText.classList.add('show');
+    if (el.srLive) el.srLive.textContent = c.text;
+    if (c.deep) {
+      el.deepDetailText.textContent = c.deep;
+      el.deepDetail.classList.add('show');
+    } else if (el.deepDetail) {
+      el.deepDetail.classList.remove('show');
+    }
+
+    const dur = (c.duration || 3500) + 350;
+    captionDurationMs = dur;
+    captionStartTime = Date.now();
+    captionRemainingMs = dur;
+
+    if (storyPaused) {
+      return;
+    }
+
     const useSpeech = narrationEnabled && 'speechSynthesis' in window;
-    let idx = 0;
-
-    function pauseCaptions() {
-      if (captionTimer) {
-        clearTimeout(captionTimer);
-        captionTimer = null;
-      }
-    }
-
-    function resumeCaptions() {
-      if (captionTimer || captionsComplete) return;
-      captionTimer = setTimeout(() => {
-        captionTimer = null;
-        showCaption();
-      }, 400);
-    }
-
-    function showCaption() {
-      if (seq !== narrationSeqToken || sceneToken !== parseInt(el.stepCounter.dataset.token || '0')) return;
-      if (idx >= captions.length) {
-        captionsComplete = true;
-        el.deepDetail.classList.remove('show');
-        if (onDone) onDone();
-        return;
-      }
-      const c = captions[idx];
-      currentCaptionIndex = idx;
-      el.captionText.textContent = c.text;
-      el.captionText.classList.add('show');
-      el.srLive.textContent = c.text;
-      if (c.deep) {
-        el.deepDetailText.textContent = c.deep;
-        el.deepDetail.classList.add('show');
-      } else {
-        el.deepDetail.classList.remove('show');
-      }
-      if (useSpeech) {
-        speakNarration(c.text, () => {
-          if (seq !== narrationSeqToken) return;
-          el.captionText.classList.remove('show');
-          el.deepDetail.classList.remove('show');
-          idx++;
-          captionTimer = setTimeout(showCaption, 400);
-        }, seq);
-      } else {
+    if (useSpeech) {
+      speakNarration(c.text, () => {
+        if (currentCaptionSeq !== narrationSeqToken || sceneToken !== parseInt(el.stepCounter.dataset.token || '0')) return;
+        if (storyPaused) return;
+        el.captionText.classList.remove('show');
+        if (el.deepDetail) el.deepDetail.classList.remove('show');
         captionTimer = setTimeout(() => {
           captionTimer = null;
-          if (seq !== narrationSeqToken) return;
-          el.captionText.classList.remove('show');
-          el.deepDetail.classList.remove('show');
-          idx++;
-          showCaption();
-        }, c.duration + 350);
-      }
+          if (storyPaused || currentCaptionSeq !== narrationSeqToken) return;
+          showCaptionAtIndex(idx + 1);
+        }, 400);
+      }, currentCaptionSeq);
+    } else {
+      captionTimer = setTimeout(() => {
+        captionTimer = null;
+        if (currentCaptionSeq !== narrationSeqToken || sceneToken !== parseInt(el.stepCounter.dataset.token || '0')) return;
+        if (storyPaused) return;
+        el.captionText.classList.remove('show');
+        if (el.deepDetail) el.deepDetail.classList.remove('show');
+        captionTimer = setTimeout(() => {
+          captionTimer = null;
+          if (storyPaused || currentCaptionSeq !== narrationSeqToken) return;
+          showCaptionAtIndex(idx + 1);
+        }, 300);
+      }, dur);
     }
-
-    showCaption();
   }
 
   function showAccounting(acc) {
@@ -1195,19 +1233,24 @@
 
   function transitionCamera(config) {
     if (!config) return;
-    const vp = el.viewport;
-    vp.style.transition = 'none';
-    void vp.offsetHeight;
-    vp.style.transition = '';
-    if (config.zoom !== undefined) {
-      vp.style.transition = `transform ${PREFERS_REDUCED ? .01 : 1.8}s var(--ease-in-out)`;
-      vp.style.transform = `scale(${config.zoom})`;
-    }
     if (config.spin !== undefined && viewer) {
       try {
-        if (config.spin) viewer.spin('y', config.speed || .2);
+        if (config.spin) viewer.spin('y', config.speed || (IS_MOBILE ? .18 : .2));
         else viewer.spin(false);
       } catch (e) {}
+    }
+    if (config.zoom !== undefined) {
+      if (viewer && currentMolKey) {
+        try {
+          viewer.zoomTo();
+          viewer.zoom(config.zoom * 0.92);
+          viewer.render();
+        } catch (e) {}
+      } else if (!IS_MOBILE) {
+        const vp = el.viewport;
+        vp.style.transition = `transform ${PREFERS_REDUCED ? .01 : 1.8}s var(--ease-in-out)`;
+        vp.style.transform = `scale(${config.zoom})`;
+      }
     }
   }
 
@@ -1259,21 +1302,42 @@
   }
 
   function pauseStory() {
+    if (storyPaused) return;
     storyPaused = true;
     pauseStart = Date.now();
-    newPauseGate();
     pauseCountdown();
-    try {
-      if ('speechSynthesis' in window) speechSynthesis.pause();
-    } catch (e) {}
+
+    // 1. Cancel speech synthesis immediately to prevent browser speech queue deadlock
+    if ('speechSynthesis' in window) {
+      try {
+        speechSynthesis.cancel();
+      } catch (e) {}
+    }
+    currentUtterance = null;
+    isNarratingSpeech = false;
+
+    // 2. Pause caption timer and record remaining ms
+    if (captionTimer) {
+      clearTimeout(captionTimer);
+      captionTimer = null;
+    }
+    if (captionStartTime > 0 && captionDurationMs > 0) {
+      const elapsed = Date.now() - captionStartTime;
+      captionRemainingMs = Math.max(1000, captionDurationMs - elapsed);
+    }
+
+    // 3. Pause 3D viewer rotation & atmosphere animation
     if (viewer && rotating) {
       try {
         viewer.spin(false);
       } catch (e) {}
     }
     atmosphereAnimating = false;
+
+    // 4. Update UI
     el.countdownText.textContent = 'PAUSED';
     el.btnPause.textContent = 'PLAY';
+    el.btnPause.classList.add('paused-state');
     el.btnPause.setAttribute('aria-pressed', 'true');
     el.btnPause.setAttribute('aria-label', 'Resume story (P)');
     if (el.srLive) el.srLive.textContent = 'Story paused';
@@ -1282,24 +1346,72 @@
   function resumeStory() {
     if (!storyPaused) return;
     storyPaused = false;
-    if (pauseGateRelease) {
-      pauseGateRelease();
-      pauseGateRelease = null;
+
+    // 1. Resume countdown if in transition countdown
+    if (countdownValue > 0) {
+      resumeCountdown();
+      el.countdownText.textContent = `NEXT SCENE IN ${countdownValue}`;
+    } else {
+      el.countdownText.textContent = '';
+      
+      // 2. Resume caption playback if scene is in progress
+      if (!captionsComplete && currentCaptionIndex >= 0 && activeCaptions && currentCaptionIndex < activeCaptions.length) {
+        const c = activeCaptions[currentCaptionIndex];
+        el.captionText.textContent = c.text;
+        el.captionText.classList.add('show');
+        if (c.deep && el.deepDetail) {
+          el.deepDetailText.textContent = c.deep;
+          el.deepDetail.classList.add('show');
+        }
+
+        const useSpeech = narrationEnabled && 'speechSynthesis' in window;
+        if (useSpeech) {
+          const seq = ++narrationSeqToken;
+          currentCaptionSeq = seq;
+          speakNarration(c.text, () => {
+            if (seq !== narrationSeqToken || storyPaused) return;
+            el.captionText.classList.remove('show');
+            if (el.deepDetail) el.deepDetail.classList.remove('show');
+            captionTimer = setTimeout(() => {
+              captionTimer = null;
+              if (storyPaused || seq !== narrationSeqToken) return;
+              showCaptionAtIndex(currentCaptionIndex + 1);
+            }, 400);
+          }, seq);
+        } else {
+          captionStartTime = Date.now();
+          const dur = captionRemainingMs > 0 ? captionRemainingMs : ((c.duration || 3500) + 350);
+          captionDurationMs = dur;
+          captionTimer = setTimeout(() => {
+            captionTimer = null;
+            if (storyPaused) return;
+            el.captionText.classList.remove('show');
+            if (el.deepDetail) el.deepDetail.classList.remove('show');
+            captionTimer = setTimeout(() => {
+              captionTimer = null;
+              if (storyPaused) return;
+              showCaptionAtIndex(currentCaptionIndex + 1);
+            }, 300);
+          }, dur);
+        }
+      }
     }
-    resumeCountdown();
-    try {
-      speechSynthesis.resume();
-    } catch (e) {}
+
+    // 3. Resume 3D viewer rotation
     if (viewer && rotating) {
       try {
         viewer.spin('y', .25);
       } catch (e) {}
     }
+
+    // 4. Resume atmosphere animation
     if (currentSceneIndex >= 0 && scenes[currentSceneIndex] && scenes[currentSceneIndex].atmosphere) {
       startAtmosphereAnimation();
     }
-    el.countdownText.textContent = '';
+
+    // 5. Update UI
     el.btnPause.textContent = 'PAUSE';
+    el.btnPause.classList.remove('paused-state');
     el.btnPause.setAttribute('aria-pressed', 'false');
     el.btnPause.setAttribute('aria-label', 'Pause story (P)');
     if (el.srLive) el.srLive.textContent = 'Story resumed';
@@ -1433,11 +1545,12 @@
       return;
     }
     const seq = ++narrationSeqToken;
+    el.btnStay.classList.remove('stay-active');
+    autoAdvanceActive = true;
     playCaptions(scene.captions, () => {
       if (seq !== narrationSeqToken || token !== sceneToken) return;
       showUI(['sceneControls']);
-      el.btnStay.classList.remove('stay-active');
-      autoAdvanceActive = true;
+      if (!autoAdvanceActive) return;
       const delay = scene.autoAdvanceDelay || 5000;
       startCountdown(delay, () => {
         if (token !== sceneToken) return;
@@ -1460,15 +1573,32 @@
       if (currentSceneIndex < scenes.length - 1) transitionToScene(currentSceneIndex + 1);
     });
     el.btnStay.addEventListener('click', () => {
-      cancelCountdown();
-      autoAdvanceActive = false;
-      el.btnStay.classList.add('stay-active');
-      el.countdownText.textContent = 'AUTO ADVANCE OFF';
-      setTimeout(() => {
-        if (!autoAdvanceActive) el.countdownText.textContent = '';
-      }, 2000);
+      if (autoAdvanceActive) {
+        cancelCountdown();
+        autoAdvanceActive = false;
+        el.btnStay.classList.add('stay-active');
+        el.countdownText.textContent = 'AUTO ADVANCE OFF';
+        setTimeout(() => {
+          if (!autoAdvanceActive && !storyPaused && countdownValue <= 0) el.countdownText.textContent = '';
+        }, 2000);
+      } else {
+        autoAdvanceActive = true;
+        el.btnStay.classList.remove('stay-active');
+        if (captionsComplete && currentSceneIndex >= 0) {
+          const delay = scenes[currentSceneIndex].autoAdvanceDelay || 5000;
+          startCountdown(delay, () => {
+            if (currentSceneIndex < scenes.length - 1) transitionToScene(currentSceneIndex + 1);
+          });
+        }
+      }
     });
     el.btnPause.addEventListener('click', togglePause);
+    el.btnRestart.addEventListener('click', () => {
+      cancelCountdown();
+      clearCaptions();
+      stopNarration();
+      transitionToScene(0, true);
+    });
     el.btnHome.addEventListener('click', () => {
       window.location.href = '../index.html';
     });

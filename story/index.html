@@ -32,9 +32,13 @@
     <div class="mol-label-name" id="molLabelName"></div>
     <div class="mol-label-formula" id="molLabelFormula"></div>
   </div>
-  <div id="narrationControls" role="toolbar" aria-label="Navigation and narration controls">
+  <div id="navControls" role="toolbar" aria-label="Navigation controls">
     <button type="button" class="nar-btn" id="btnHome" aria-label="Back to home">HOME</button>
+    <button class="nar-btn" id="btnRestart" aria-label="Restart story" title="Restart story">RESTART</button>
+  </div>
+  <div id="narrationControls" role="toolbar" aria-label="Narration and playback controls">
     <button class="nar-btn" id="btnNarration" aria-pressed="true" aria-label="Toggle voice narration" title="Toggle narration (N)">NARRATION</button>
+    <button class="nar-btn" id="btnPause" aria-pressed="false" aria-label="Pause story (P)" title="Pause story (P)">PAUSE</button>
   </div>
   <div id="enzymeLabel" aria-hidden="true">
     <div class="enzyme-name" id="enzymeName"></div>
@@ -50,12 +54,11 @@
     <div id="deepDetailText"></div>
   </div>
   <div id="caption" aria-hidden="true"><div id="captionText"></div></div>
-  <div id="sceneControls">
+  <div id="sceneControls" role="toolbar" aria-label="Scene playback controls">
     <div id="countdownText" role="timer" aria-label="Countdown"></div>
     <div id="navRow">
       <button class="sctrl" id="btnPrev" aria-label="Previous scene">&larr; BACK</button>
-      <button class="sctrl" id="btnPause" aria-pressed="false" aria-label="Pause story" title="Pause story (P)">PAUSE</button>
-      <button class="sctrl" id="btnStay" aria-label="Stay on this scene">STAY</button>
+      <button class="sctrl" id="btnStay" aria-label="Stay on this scene (S)" title="Stay on this scene (S)">STAY</button>
       <button class="sctrl" id="btnNext" aria-label="Next scene">NEXT &rarr;</button>
     </div>
   </div>

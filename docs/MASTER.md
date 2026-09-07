@@ -722,8 +722,7 @@ If SDF fails to load:
 ```
 <body>
   <a class="skip-link">          Skip to viewer → #viewerSection
-  <section class="hero">         Full-viewport hero with decorative cell + molecule SVG
-    <div class="hero-cell">      Decorative cell background (CSS)
+  <section class="hero">         Full-viewport hero with decorative molecule SVG
     <div class="hero-molecule">  Decorative molecule SVG
     <div class="hero-content">   Title, lede, story CTA link, scroll cue
   <section id="viewerSection">   Viewer section (skip-link target)
@@ -1958,7 +1957,7 @@ Scientific Unicode characters (subscripts, superscripts, arrows, Greek letters) 
 
 - CSS custom properties (`:root`)
 - Reset rules and `.skip-link` (visible on focus)
-- Hero section (`.hero`, `.hero-cell`, `.hero-molecule`, `.hero-content`, `.eyebrow`, `h1`, `.description`, `.story-link`, `.scroll-cue`, `.page-context`)
+- Hero section (`.hero`, `.hero-molecule`, `.hero-content`, `.eyebrow`, `h1`, `.description`, `.story-link`, `.scroll-cue`, `.page-context`)
 - Viewer (`.viewer-section`, `.viewer-inner`, `.viewer-sidebar`, `.mol-btn-grid`, `.mol-btn`, `.viewer-canvas-wrap`, `#viewer3d`, `.viewer-info-bar`, `.viewer-controls`, `.vc-btn`)
 - Legend (`.mol-legend`, `.mol-legend-item`, `.mol-legend-tip`)
 - Viewer error (`.mol-viewer-error`)

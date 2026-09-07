@@ -70,34 +70,6 @@ body {
     linear-gradient(90deg, rgba(0,0,0,.2), transparent 24%, transparent 76%, rgba(0,0,0,.24));
 }
 
-.hero-cell {
-  position: absolute;
-  z-index: 1;
-  left: -170px;
-  top: -8%;
-  width: 430px;
-  height: 116%;
-  border-radius: 50%;
-  background:
-    radial-gradient(ellipse at 72% 50%, rgba(66,72,76,.6) 0 2%, rgba(34,40,44,.88) 8%, rgba(16,21,24,.96) 34%, rgba(5,7,9,0) 71%);
-  opacity: .78;
-  pointer-events: none;
-}
-
-.hero-cell:before {
-  content: "";
-  position: absolute;
-  inset: 7% 11% 7% 20%;
-  border-radius: 50%;
-  opacity: .42;
-  background-image:
-    radial-gradient(circle at 18% 22%, rgba(255,255,255,.18) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 63% 38%, rgba(255,255,255,.12) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 42% 71%, rgba(255,255,255,.13) 0 1px, transparent 1.5px);
-  background-size: 19px 23px, 27px 31px, 23px 29px;
-  mix-blend-mode: screen;
-}
-
 .hero-molecule {
   position: absolute;
   z-index: 1;
@@ -261,10 +233,6 @@ h1 {
     top: 27%;
     opacity: .34;
   }
-
-  .hero-cell {
-    left: -235px;
-  }
 }
 
 @media (max-width: 768px) {
@@ -331,11 +299,6 @@ h1 {
     font-size: 10px;
   }
 
-  .hero-cell {
-    left: -330px;
-    opacity: .42;
-  }
-
   .hero-molecule {
     right: -220px;
     top: 42%;
@@ -389,11 +352,6 @@ h1 {
 
   .hero-molecule {
     display: none;
-  }
-
-  .hero-cell {
-    left: -375px;
-    opacity: .3;
   }
 }
 

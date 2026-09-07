@@ -139,7 +139,7 @@ Single canonical copy at `vendor/3dmol/3Dmol-min.js`. Referenced by both landing
 - `aria-pressed` on toggle buttons (AUTO, H)
 - `aria-live="polite"` on the viewer info bar (`#viewerInfo`) for molecule change announcements
 - `aria-label` on all interactive controls
-- `aria-hidden="true"` on decorative elements (hero cell, hero molecule, legend dots)
+- `aria-hidden="true"` on decorative elements (hero molecule, legend dots)
 - Touch targets minimum 44×44px (`.vc-btn`)
 - Reduced motion: `prefers-reduced-motion: reduce` suppresses transitions and hover transforms
 
