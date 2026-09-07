@@ -76,7 +76,7 @@ Both use 3Dmol.js for real-time 3D molecular rendering of SDF-based structures a
 - **Landing → Story**: Hero CTA "Interactive Story" + footer "Interactive Story" link
 - **Story → Landing**: "VIEWER" link in narration controls
 - **Landing → Legal**: Footer "Privacy Policy", "Terms of Use", "Accessibility Statement" links
-- **Legal → Landing**: "← Back to Glycolysis" link on every legal page
+- **Legal → Landing**: "Home" link with home icon on every legal page
 - **Legal cross-links**: Each legal page links to the other two in its mini footer
 - Normal `<a href>` navigation, no JavaScript routing
 

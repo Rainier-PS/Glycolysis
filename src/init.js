@@ -23,6 +23,7 @@
   var viewerGate = document.getElementById('viewerGate');
   var viewerContent = document.getElementById('viewerContent');
   var smallScreen = window.matchMedia('(max-width: 1024px)').matches;
+  var isMobile = window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   var rendererPromise = null;
   var initializationPromise = null;
 
@@ -45,6 +46,9 @@
         initializationPromise = loadRenderer().then(function () {
           V.init('viewer3d');
           initialized = true;
+          if (isMobile) {
+            btnSpin.setAttribute('aria-pressed', 'false');
+          }
         });
       }
       await initializationPromise;

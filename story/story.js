@@ -1011,7 +1011,6 @@
     speechSynthesis.getVoices();
   }
 
-  let onSpeechEnd = null;
   let isNarratingSpeech = false;
 
   function speakNarration(text, onEnd, seq) {
@@ -1313,7 +1312,6 @@
     pauseStart = Date.now();
     pauseCountdown();
 
-    // 1. Cancel speech synthesis immediately to prevent browser speech queue deadlock
     if ('speechSynthesis' in window) {
       try {
         speechSynthesis.cancel();
@@ -1322,7 +1320,6 @@
     currentUtterance = null;
     isNarratingSpeech = false;
 
-    // 2. Pause caption timer and record remaining ms
     if (captionTimer) {
       clearTimeout(captionTimer);
       captionTimer = null;
@@ -1332,7 +1329,6 @@
       captionRemainingMs = Math.max(1000, captionDurationMs - elapsed);
     }
 
-    // 3. Pause 3D viewer rotation & atmosphere animation
     if (viewer && rotating) {
       try {
         viewer.spin(false);
@@ -1340,7 +1336,6 @@
     }
     atmosphereAnimating = false;
 
-    // 4. Update UI
     el.countdownText.textContent = 'PAUSED';
     el.btnPause.querySelector('span').textContent = 'PLAY';
     el.btnPause.querySelector('path').setAttribute('d', 'M8 5l11 7-11 7z');
@@ -1354,14 +1349,12 @@
     if (!storyPaused) return;
     storyPaused = false;
 
-    // 1. Resume countdown if in transition countdown
     if (countdownValue > 0) {
       resumeCountdown();
       el.countdownText.textContent = `NEXT SCENE IN ${countdownValue}`;
     } else {
       el.countdownText.textContent = '';
-      
-      // 2. Resume caption playback if scene is in progress
+
       if (!captionsComplete && currentCaptionIndex >= 0 && activeCaptions && currentCaptionIndex < activeCaptions.length) {
         const c = activeCaptions[currentCaptionIndex];
         el.captionText.textContent = c.text;
@@ -1404,19 +1397,16 @@
       }
     }
 
-    // 3. Resume 3D viewer rotation
     if (viewer && rotating) {
       try {
         viewer.spin('y', .25);
       } catch (e) {}
     }
 
-    // 4. Resume atmosphere animation
     if (currentSceneIndex >= 0 && scenes[currentSceneIndex] && scenes[currentSceneIndex].atmosphere) {
       startAtmosphereAnimation();
     }
 
-    // 5. Update UI
     el.btnPause.querySelector('span').textContent = 'PAUSE';
     el.btnPause.querySelector('path').setAttribute('d', 'M7 5v14M17 5v14');
     el.btnPause.classList.remove('paused-state');
@@ -1440,9 +1430,7 @@
       .replaceAll('3-Phosphoglycerate', '3-PG')
       .replaceAll('2-Phosphoglycerate', '2-PG')
       .replaceAll('Phosphoenolpyruvate', 'PEP')
-      .replaceAll('Pyruvate', 'Pyruvate')
-      .replaceAll('NAD⁺', 'NAD+')
-      .replaceAll('NADH', 'NADH');
+      .replaceAll('NAD⁺', 'NAD+');
   }
 
   async function transitionToScene(index, immediate) {

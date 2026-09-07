@@ -42,6 +42,9 @@
   var showHydrogens = false;
   var autoRotate = true;
   var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var isMobile = window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (isMobile) autoRotate = false;
+  var spinObserver = null;
 
   function applyStyle() {
     if (!viewer) return;
@@ -63,7 +66,24 @@
       container.innerHTML = '<div class="mol-viewer-error" role="alert"><p>Molecular renderer unavailable.</p></div>';
       return false;
     }
-    viewer = $3Dmol.createViewer(container, { backgroundColor: 0x050709, antialias: true, disableFog: true });
+    viewer = $3Dmol.createViewer(container, { backgroundColor: 0x050709, antialias: !isMobile, disableFog: true });
+    if (isMobile && container) {
+      container.style.height = '100%';
+      container.style.width = '100%';
+    }
+    if (typeof IntersectionObserver !== 'undefined' && container) {
+      spinObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!viewer) return;
+          if (entry.isIntersecting) {
+            if (autoRotate && !reducedMotion) viewer.spin('y', 0.25);
+          } else {
+            viewer.spin(false);
+          }
+        });
+      }, { threshold: 0.1 });
+      spinObserver.observe(container);
+    }
     return true;
   }
 
