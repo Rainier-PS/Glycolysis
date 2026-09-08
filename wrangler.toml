@@ -1,0 +1,15 @@
+name = "glycolysis"
+main = "worker/index.js"
+compatibility_date = "2026-09-08"
+
+[assets]
+directory = "./public/"
+binding = "ASSETS"
+run_worker_first = true
+
+[vars]
+# Testing sender — replace with verified domain after Resend setup
+SEND_FROM = "Glycolysis Interactive <onboarding@resend.dev>"
+
+# SECURITY: Never put RESEND_API_KEY here.
+# Set it via: npx wrangler secret put RESEND_API_KEY

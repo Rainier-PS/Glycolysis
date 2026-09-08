@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="styles/legal.css">
+  <title>Accessibility Statement | Glycolysis Interactive</title>
+  <meta name="description" content="Accessibility statement for the Glycolysis Interactive educational molecular viewer.">
+</head>
+<body>
+  <a href="#mainContent" class="skip-link">Skip to content</a>
+
+  <header class="page-header">
+    <div class="page-header-inner">
+      <a href="index.html" class="back-link"><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5M5.5 10v10h13V10M9.5 20v-6h5v6"/></svg> Home</a>
+      <h1 class="page-title">Accessibility Statement</h1>
+      <p class="page-updated">Last updated: September 2026</p>
+    </div>
+  </header>
+
+  <main class="content" id="mainContent" role="main">
+    <h2>Commitment to Accessibility</h2>
+    <p>Glycolysis Interactive is committed to ensuring digital accessibility for all users, including people with disabilities. We target the Web Content Accessibility Guidelines (WCAG) 2.1 Level AA. This site has not yet undergone a formal third-party accessibility audit, so conformance cannot currently be claimed; the measures below describe the accessibility architecture as implemented.</p>
+
+    <h2>Keyboard Navigation</h2>
+    <p>All interactive elements on this site are fully keyboard accessible:</p>
+    <ul>
+      <li><strong>Molecule selector</strong> — A radio group with roving tabindex: Tab moves focus into the grid, Arrow keys (or j/k) move between molecules, Enter or Space selects, and Home and End jump to first/last item.</li>
+      <li><strong>Viewer controls</strong> — Hydrogen toggle, auto-rotation, and reset are all keyboard-operable buttons.</li>
+      <li><strong>Interactive Story</strong> — Scene navigation supports keyboard shortcuts (Arrow keys or Space for scenes, P to pause or resume the story, N for narration, R for rotation, H for hydrogens, S to stop auto-advance, Escape to stop narration). Shortcuts are disabled while a text field has focus or when combined with modifier keys.</li>
+      <li><strong>Skip links</strong> — A skip-to-content link is the first focusable element on every page and becomes visible when focused.</li>
+    </ul>
+
+    <h2>Screen Reader Support</h2>
+    <ul>
+      <li>Molecule changes are announced via <code>aria-live</code> regions.</li>
+      <li>The 3D viewer includes a descriptive <code>aria-label</code> and hidden molecule description that updates with each selection.</li>
+      <li>All buttons and controls have explicit accessible names.</li>
+      <li>The molecule grid uses <code>role="radiogroup"</code> with <code>aria-checked</code> state management.</li>
+    </ul>
+
+    <h2>Reduced Motion</h2>
+    <p>The site respects the <code>prefers-reduced-motion</code> system preference. When enabled:</p>
+    <ul>
+      <li>CSS animations and transitions are suppressed.</li>
+      <li>3D molecule auto-rotation is disabled by default.</li>
+      <li>The interactive story reduces particle effects and transition durations.</li>
+    </ul>
+
+    <h2>Color and Contrast</h2>
+    <p>The site uses a high-contrast dark theme. Primary text and interactive controls maintain a contrast ratio of at least 4.5:1 against their backgrounds. Decorative legend text has been held to the same standard. Interactive elements use visible focus indicators with a 2px accent-colored outline.</p>
+
+    <h2>Touch Targets</h2>
+    <p>Primary interactive elements provide a touch target of at least 44×44 pixels. A small number of auxiliary overlay controls in the interactive story are smaller at desktop sizes and remain fully keyboard-operable.</p>
+
+    <h2>Known Limitations</h2>
+    <ul>
+      <li>The 3D molecular viewer relies on WebGL, which may not be available in all assistive technology contexts. Molecular information (name, formula) is provided as text alongside the viewer.</li>
+      <li>Speech synthesis narration in the interactive story varies by browser and operating system.</li>
+    </ul>
+
+    <h2>Feedback</h2>
+    <p>If you encounter any accessibility barriers on this site, please open an issue on the project's GitHub repository. We welcome feedback and will work to address any issues promptly.</p>
+  </main>
+
+  <footer class="footer-mini" role="contentinfo">
+    <div class="footer-mini-inner">
+      <span class="footer-mini-copy">&copy; 2026 Glycolysis Interactive</span>
+      <nav aria-label="Legal navigation">
+        <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="accessibility.html">Accessibility</a> · <a href="index.html">Home</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

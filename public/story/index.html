@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Glycolysis | An Interactive Molecular Journey</title>
+  <meta name="description" content="Explore glycolysis through an interactive molecular journey from glucose to pyruvate, with clear explanations of ATP, NADH, and the ten reactions of the pathway.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="../vendor/3dmol/3Dmol-min.js"></script>
+  <link rel="stylesheet" href="story.css">
+</head>
+<body>
+  <a href="#mainContent" class="skip-link">Skip to main content</a>
+  <div id="srLive" class="sr-only" aria-live="polite" aria-atomic="true" role="status"></div>
+  <div id="srMolDesc" class="sr-only" role="img"></div>
+  <div id="loadingScreen" role="status" aria-live="polite" aria-label="Loading documentary">
+  <div class="loader-title">Glycolysis</div>
+  <div class="loader-sub">Preparing your journey&hellip;</div>
+  <div class="loader-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+</div>
+  <div id="mainContent" role="main" aria-label="Glycolysis molecular documentary">
+  <div id="viewport" aria-label="Interactive 3D molecular visualization" aria-describedby="srMolDesc"><div id="molViewer"></div></div>
+  <div id="molFade" aria-hidden="true"></div>
+  <div id="molFallback"><div id="molFallbackText"></div></div>
+  <canvas id="atmosphere" aria-hidden="true"></canvas>
+  <div id="fadeOverlay" aria-hidden="true"></div>
+  <div id="sceneLabel" aria-hidden="true"></div>
+  <div id="stepCounter" aria-hidden="true"></div>
+  <div id="molLabel" aria-hidden="true">
+    <div class="mol-label-name" id="molLabelName"></div>
+    <div class="mol-label-formula" id="molLabelFormula"></div>
+  </div>
+  <div id="navControls" role="toolbar" aria-label="Navigation controls">
+    <button type="button" class="nar-btn" id="btnHome" aria-label="Back to home" title="Back to home"><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5M5.5 10v10h13V10M9.5 20v-6h5v6"/></svg><span>HOME</span></button>
+    <button class="nar-btn" id="btnRestart" aria-label="Restart story" title="Restart story"><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M4 11a8 8 0 1 1 2.3 5.7M4 5v6h6"/></svg><span>RESTART</span></button>
+  </div>
+  <div id="narrationControls" role="toolbar" aria-label="Narration and playback controls">
+    <button class="nar-btn" id="btnNarration" aria-pressed="true" aria-label="Toggle voice narration" title="Toggle narration (N)"><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M4 10v4h3l5 4V6l-5 4H4M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg><span>NARRATION</span></button>
+    <button class="nar-btn" id="btnPause" aria-pressed="false" aria-label="Pause story (P)" title="Pause story (P)"><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M7 5v14M17 5v14"/></svg><span>PAUSE</span></button>
+  </div>
+  <button type="button" id="mobileToolsToggle" aria-expanded="false" aria-controls="viewerToolbar legend">MOLECULE TOOLS <span aria-hidden="true">+</span></button>
+  <div id="enzymeLabel" aria-hidden="true">
+    <div class="enzyme-name" id="enzymeName"></div>
+    <div class="enzyme-reaction" id="enzymeReaction"></div>
+  </div>
+  <div id="viewerToolbar" role="toolbar" aria-label="Viewer controls">
+    <button class="vtb" id="btnRotate" aria-pressed="true" aria-label="Toggle auto rotation" title="Auto-rotate (R)">AUTO</button>
+    <button class="vtb" id="btnHydrogen" aria-pressed="false" aria-label="Toggle hydrogen atoms" title="Show hydrogens (H)">H</button>
+    <button class="vtb" id="btnReset" aria-label="Reset camera view" title="Reset camera"><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v4M12 16v4M4 12h4M16 12h4"/></svg><span>RESET</span></button>
+  </div>
+  <div id="deepDetail" aria-hidden="true">
+    <div id="deepDetailLabel">DEEPER DETAIL</div>
+    <div id="deepDetailText"></div>
+  </div>
+  <div id="caption" aria-hidden="true"><div id="captionText"></div></div>
+  <div id="sceneControls" role="toolbar" aria-label="Scene playback controls">
+    <div id="countdownText" role="timer" aria-label="Countdown"></div>
+    <div id="navRow">
+      <button class="sctrl" id="btnPrev" aria-label="Previous scene"><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M20 12H5M11 6l-6 6 6 6"/></svg> BACK</button>
+      <button class="sctrl" id="btnStay" aria-label="Stay on this scene (S)" title="Stay on this scene (S)">STAY</button>
+      <button class="sctrl" id="btnNext" aria-label="Next scene">NEXT <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></button>
+    </div>
+  </div>
+  <div id="accounting" aria-label="Energy accounting"></div>
+  <div id="overallEquation" aria-label="Overall glycolysis equation"></div>
+  <div id="legend" aria-label="Atom color legend" role="img">
+    <span class="leg-item"><span class="leg-dot" style="background:#808080" aria-hidden="true"></span>C<span class="leg-tip">Carbon</span></span>
+    <span class="leg-item"><span class="leg-dot" style="background:#e04040" aria-hidden="true"></span>O<span class="leg-tip">Oxygen</span></span>
+    <span class="leg-item"><span class="leg-dot" style="background:#4060e0" aria-hidden="true"></span>N<span class="leg-tip">Nitrogen</span></span>
+    <span class="leg-item"><span class="leg-dot" style="background:#f0a030" aria-hidden="true"></span>P<span class="leg-tip">Phosphorus</span></span>
+    <span class="leg-item"><span class="leg-dot" style="background:#e0e0e0" aria-hidden="true"></span>H<span class="leg-tip">Hydrogen</span></span>
+  </div>
+  <div id="molecularCaveat" aria-hidden="true">Representative ionic form; protonation state depends on pH.</div>
+  <div id="loadingIndicator" aria-hidden="true">preparing molecular structure&hellip;</div>
+  <div id="quizOverlay" class="overlay-panel" role="dialog" aria-label="Quiz checkpoint" aria-modal="true" tabindex="-1">
+    <div id="quizContainer">
+      <div id="quizProgress"><span id="quizProgressText"></span></div>
+      <div id="quizQuestionText"></div>
+      <div id="quizOptions" role="radiogroup" aria-label="Answer options"></div>
+      <div id="quizFeedback" aria-live="polite"><div id="quizFeedbackText"></div></div>
+      <button type="button" id="quizContinue" class="quiz-continue-btn" aria-label="Continue story">CONTINUE STORY</button>
+    </div>
+  </div>
+  <div id="resultsOverlay" class="overlay-panel" role="dialog" aria-label="Story results" aria-modal="true" tabindex="-1">
+    <div id="resultsContainer">
+      <div class="results-header">STORY COMPLETE</div>
+      <div id="resultsScore" class="results-score"></div>
+      <div id="resultsPercentage" class="results-pct"></div>
+      <div id="resultsReview" class="results-review"></div>
+      <div class="results-actions">
+        <button type="button" id="resultsStoryBtn" class="results-btn">REVIEW STORY</button>
+        <button type="button" id="resultsQuestionsBtn" class="results-btn">REVIEW QUESTIONS</button>
+        <button type="button" id="resultsEmailBtn" class="results-btn results-btn-accent">EMAIL RESULTS TO TEACHER</button>
+      </div>
+    </div>
+  </div>
+  <div id="emailOverlay" class="overlay-panel" role="dialog" aria-label="Email results" aria-modal="true" tabindex="-1">
+    <div id="emailContainer">
+      <div class="email-header">EMAIL RESULTS TO TEACHER</div>
+      <p class="email-note" id="emailNote">Your quiz results will be sent directly to your teacher. All fields are required.</p>
+      <div id="emailError" class="email-error" role="alert"></div>
+      <form id="emailForm" novalidate>
+        <label class="email-label" for="emailTeacherName">Teacher name</label>
+        <input type="text" id="emailTeacherName" class="email-input" maxlength="200" autocomplete="off" required>
+        <label class="email-label" for="emailTeacherEmail">Teacher email</label>
+        <input type="email" id="emailTeacherEmail" class="email-input" maxlength="254" autocomplete="off" required>
+        <label class="email-label" for="emailStudentName">Your name</label>
+        <input type="text" id="emailStudentName" class="email-input" maxlength="200" autocomplete="off" required>
+        <div class="email-actions">
+          <button type="button" id="emailCancel" class="results-btn">CANCEL</button>
+          <button type="button" id="emailSend" class="results-btn results-btn-accent">SEND RESULTS</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+  <script src="questions.js"></script>
+  <script src="story.js"></script>
+</body>
+</html>
