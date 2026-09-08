@@ -1147,6 +1147,7 @@
         btn.setAttribute('aria-checked', 'true');
         el.quizContinue.classList.add('visible');
         el.quizContinue.focus();
+        el.srLive.textContent = 'Selected: ' + opt;
       });
 
       el.quizOptions.appendChild(btn);
@@ -1272,19 +1273,23 @@
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
+  var lastFocusedElement = null;
+
   function openEmailResults() {
+    lastFocusedElement = document.activeElement;
     el.emailOverlay.classList.add('visible');
-    el.emailOverlay.focus();
     el.emailError.textContent = '';
     el.emailTeacherName.value = '';
     el.emailTeacherEmail.value = '';
     el.emailStudentName.value = '';
     el.emailSend.disabled = false;
     el.emailSend.textContent = 'SEND RESULTS';
+    setTimeout(function () { el.emailTeacherName.focus(); }, 100);
   }
 
   function closeEmailResults() {
     el.emailOverlay.classList.remove('visible');
+    if (lastFocusedElement) lastFocusedElement.focus();
   }
 
   function buildEmailBody() {
@@ -1644,6 +1649,19 @@
       var isOpen = document.body.classList.toggle('mobile-tools-open');
       el.mobileToolsToggle.setAttribute('aria-expanded', String(isOpen));
       el.mobileToolsToggle.lastElementChild.textContent = isOpen ? '\u00d7' : '+';
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!document.body.classList.contains('mobile-tools-open')) return;
+      var toolbar = document.getElementById('viewerToolbar');
+      var legend = document.getElementById('legend');
+      var toggle = document.getElementById('mobileToolsToggle');
+      if (toolbar && toolbar.contains(e.target)) return;
+      if (legend && legend.contains(e.target)) return;
+      if (toggle && toggle.contains(e.target)) return;
+      document.body.classList.remove('mobile-tools-open');
+      el.mobileToolsToggle.setAttribute('aria-expanded', 'false');
+      el.mobileToolsToggle.lastElementChild.textContent = '+';
     });
     document.addEventListener('keydown', function (e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;

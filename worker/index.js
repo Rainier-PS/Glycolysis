@@ -11,6 +11,11 @@
  *   TURNSTILE_SECRET — (Optional) Cloudflare Turnstile secret for abuse protection
  */
 
+const API_HEADERS = {
+  'Content-Type': 'application/json',
+  'X-Content-Type-Options': 'nosniff',
+};
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -40,7 +45,7 @@ function sanitize(str, maxLength) {
 function jsonError(message, status) {
   return new Response(JSON.stringify({ error: message }), {
     status,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+    headers: { ...CORS_HEADERS, ...API_HEADERS },
   });
 }
 
@@ -48,7 +53,7 @@ function jsonError(message, status) {
 function jsonSuccess(data) {
   return new Response(JSON.stringify(data), {
     status: 200,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+    headers: { ...CORS_HEADERS, ...API_HEADERS },
   });
 }
 
@@ -89,17 +94,19 @@ async function handleSendEmail(request, env) {
     return jsonError('Email service not configured on the server.', 503);
   }
 
+  // ── Parse request body (once) ──
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonError('Invalid JSON', 400);
+  }
+
   // ── Turnstile verification (optional — manual setup required) ──
   // If TURNSTILE_SECRET is set, verify the Turnstile token before proceeding.
   // To enable: set TURNSTILE_SECRET via `wrangler secret put TURNSTILE_SECRET`
   // and add a Turnstile widget to the frontend form.
   if (env.TURNSTILE_SECRET) {
-    let body;
-    try {
-      body = await request.clone().json();
-    } catch {
-      return jsonError('Invalid JSON', 400);
-    }
     const token = body.turnstileToken;
     if (!token) {
       return jsonError('Turnstile verification required.', 403);
@@ -116,14 +123,6 @@ async function handleSendEmail(request, env) {
     if (!turnstileData.success) {
       return jsonError('Turnstile verification failed.', 403);
     }
-  }
-
-  // ── Parse request body ──
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return jsonError('Invalid JSON', 400);
   }
 
   const { teacherName, teacherEmail, studentName, subject, message } = body;
