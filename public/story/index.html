@@ -92,6 +92,7 @@
       <div class="results-actions">
         <button type="button" id="resultsStoryBtn" class="results-btn">REVIEW STORY</button>
         <button type="button" id="resultsQuestionsBtn" class="results-btn">REVIEW QUESTIONS</button>
+        <button type="button" id="resultsDownloadBtn" class="results-btn">DOWNLOAD RESULTS</button>
         <button type="button" id="resultsEmailBtn" class="results-btn results-btn-accent">EMAIL RESULTS TO TEACHER</button>
       </div>
     </div>
@@ -99,7 +100,7 @@
   <div id="emailOverlay" class="overlay-panel" role="dialog" aria-label="Email results" aria-modal="true" tabindex="-1">
     <div id="emailContainer">
       <div class="email-header">EMAIL RESULTS TO TEACHER</div>
-      <p class="email-note" id="emailNote">Your quiz results will be sent directly to your teacher. All fields are required.</p>
+      <p class="email-note" id="emailNote">Your email app will open with the results and verification link filled in. You can optionally attach the downloaded results file. All fields are required.</p>
       <div id="emailError" class="email-error" role="alert"></div>
       <form id="emailForm" novalidate>
         <label class="email-label" for="emailTeacherName">Teacher name</label>
@@ -110,7 +111,22 @@
         <input type="text" id="emailStudentName" class="email-input" maxlength="200" autocomplete="off" aria-describedby="emailError" required>
         <div class="email-actions">
           <button type="button" id="emailCancel" class="results-btn">CANCEL</button>
-          <button type="button" id="emailSend" class="results-btn results-btn-accent">SEND RESULTS</button>
+          <button type="button" id="emailSend" class="results-btn results-btn-accent">OPEN EMAIL APP</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div id="downloadOverlay" class="overlay-panel" role="dialog" aria-label="Download results" aria-modal="true" tabindex="-1">
+    <div id="downloadContainer">
+      <div class="email-header">DOWNLOAD RESULTS</div>
+      <p class="email-note">Enter your name to create a verified results file. Your verification code can be checked by a teacher.</p>
+      <div id="downloadError" class="email-error" role="alert"></div>
+      <form id="downloadForm" novalidate>
+        <label class="email-label" for="downloadStudentName">Your name</label>
+        <input type="text" id="downloadStudentName" class="email-input" maxlength="200" autocomplete="name" required>
+        <div class="email-actions">
+          <button type="button" id="downloadCancel" class="results-btn">CANCEL</button>
+          <button type="submit" id="downloadSubmit" class="results-btn results-btn-accent">DOWNLOAD FILE</button>
         </div>
       </form>
     </div>

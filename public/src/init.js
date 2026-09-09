@@ -23,7 +23,8 @@
   var initialized = false;
   var viewerGate = document.getElementById('viewerGate');
   var viewerContent = document.getElementById('viewerContent');
-  var smallScreen = window.matchMedia('(max-width: 1024px)').matches;
+  var hasTouchInput = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches;
+  var smallScreen = window.matchMedia('(max-width: 1024px)').matches || hasTouchInput;
   var isMobile = window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   var rendererPromise = null;
   var initializationPromise = null;

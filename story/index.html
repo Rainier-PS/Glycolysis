@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Glycolysis | An Interactive Molecular Journey</title>
-  <meta name="description" content="Explore glycolysis through an interactive molecular journey from glucose to pyruvate, with clear explanations of ATP, NADH, enzymes, and the ten reactions of the pathway.">
+  <meta name="description" content="Explore glycolysis through an interactive molecular journey from glucose to pyruvate, with clear explanations of ATP, NADH, and the ten reactions of the pathway.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -74,7 +74,65 @@
   </div>
   <div id="molecularCaveat" aria-hidden="true">Representative ionic form; protonation state depends on pH.</div>
   <div id="loadingIndicator" aria-hidden="true">preparing molecular structure&hellip;</div>
+  <div id="quizOverlay" class="overlay-panel" role="dialog" aria-label="Quiz checkpoint" aria-modal="true" tabindex="-1">
+    <div id="quizContainer">
+      <div id="quizProgress"><span id="quizProgressText"></span></div>
+      <div id="quizQuestionText"></div>
+      <div id="quizOptions" role="radiogroup" aria-label="Answer options"></div>
+      <div id="quizFeedback" aria-live="polite"><div id="quizFeedbackText"></div></div>
+      <button type="button" id="quizContinue" class="quiz-continue-btn" aria-label="Continue story">CONTINUE STORY</button>
+    </div>
+  </div>
+  <div id="resultsOverlay" class="overlay-panel" role="dialog" aria-label="Story results" aria-modal="true" tabindex="-1">
+    <div id="resultsContainer">
+      <div class="results-header">STORY COMPLETE</div>
+      <div id="resultsScore" class="results-score"></div>
+      <div id="resultsPercentage" class="results-pct"></div>
+      <div id="resultsReview" class="results-review"></div>
+      <div class="results-actions">
+        <button type="button" id="resultsStoryBtn" class="results-btn">REVIEW STORY</button>
+        <button type="button" id="resultsQuestionsBtn" class="results-btn">REVIEW QUESTIONS</button>
+        <button type="button" id="resultsDownloadBtn" class="results-btn">DOWNLOAD RESULTS</button>
+        <button type="button" id="resultsEmailBtn" class="results-btn results-btn-accent">EMAIL RESULTS TO TEACHER</button>
+      </div>
+    </div>
+  </div>
+  <div id="emailOverlay" class="overlay-panel" role="dialog" aria-label="Email results" aria-modal="true" tabindex="-1">
+    <div id="emailContainer">
+      <div class="email-header">EMAIL RESULTS TO TEACHER</div>
+      <p class="email-note" id="emailNote">Your email app will open with the results and verification link filled in. You can optionally attach the downloaded results file. All fields are required.</p>
+      <div id="emailError" class="email-error" role="alert"></div>
+      <form id="emailForm" novalidate>
+        <label class="email-label" for="emailTeacherName">Teacher name</label>
+        <input type="text" id="emailTeacherName" class="email-input" maxlength="200" autocomplete="off" required>
+        <label class="email-label" for="emailTeacherEmail">Teacher email</label>
+        <input type="email" id="emailTeacherEmail" class="email-input" maxlength="254" autocomplete="off" required>
+        <label class="email-label" for="emailStudentName">Your name</label>
+        <input type="text" id="emailStudentName" class="email-input" maxlength="200" autocomplete="off" required>
+        <div class="email-actions">
+          <button type="button" id="emailCancel" class="results-btn">CANCEL</button>
+          <button type="button" id="emailSend" class="results-btn results-btn-accent">OPEN EMAIL APP</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div id="downloadOverlay" class="overlay-panel" role="dialog" aria-label="Download results" aria-modal="true" tabindex="-1">
+    <div id="downloadContainer">
+      <div class="email-header">DOWNLOAD RESULTS</div>
+      <p class="email-note">Enter your name to create a verified results file. Your verification code can be checked by a teacher.</p>
+      <div id="downloadError" class="email-error" role="alert"></div>
+      <form id="downloadForm" novalidate>
+        <label class="email-label" for="downloadStudentName">Your name</label>
+        <input type="text" id="downloadStudentName" class="email-input" maxlength="200" autocomplete="name" required>
+        <div class="email-actions">
+          <button type="button" id="downloadCancel" class="results-btn">CANCEL</button>
+          <button type="submit" id="downloadSubmit" class="results-btn results-btn-accent">DOWNLOAD FILE</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
+  <script src="questions.js"></script>
   <script src="story.js"></script>
 </body>
 </html>

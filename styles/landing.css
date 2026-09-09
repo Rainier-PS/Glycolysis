@@ -761,44 +761,45 @@ h1 {
 
 .viewer-controls {
   position: absolute;
-  bottom: 12px;
-  right: 12px;
+  bottom: 14px;
+  right: 14px;
   display: flex;
   gap: 6px;
   z-index: 2;
 }
 
 .vc-btn {
-  padding: 6px 12px;
-  font-size: 11px;
+  padding: 5px 12px;
+  font-size: 10px;
   font-weight: 500;
   letter-spacing: .8px;
   color: var(--muted);
-  border: 1px solid var(--line);
+  border: 1px solid rgba(255,255,255,.08);
   border-radius: var(--radius);
-  background: rgba(5,7,9,.75);
+  background: rgba(5,7,9,.7);
   backdrop-filter: blur(8px);
   cursor: pointer;
   transition: all .18s ease;
-  min-height: 44px;
-  min-width: 44px;
+  min-height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
 }
 
 .vc-btn:hover {
   color: var(--text);
-  border-color: rgba(255,255,255,.15);
+  border-color: rgba(255,255,255,.18);
+  background: rgba(255,255,255,.04);
 }
 
 .vc-btn[aria-pressed="true"] {
   color: var(--accent);
-  border-color: rgba(198,255,46,.3);
+  border-color: rgba(198,255,46,.25);
 }
 
 .vc-btn:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 1px solid var(--accent);
   outline-offset: 2px;
 }
 

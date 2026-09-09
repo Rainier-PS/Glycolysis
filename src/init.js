@@ -4,6 +4,7 @@
   if (!V) return;
   var grid = document.getElementById('molGrid');
   var buttons = [];
+  var moleculeList = V.CURATED || V.MOLECULES;
 
   function setActive(key) {
     buttons.forEach(function (b) {
@@ -22,7 +23,8 @@
   var initialized = false;
   var viewerGate = document.getElementById('viewerGate');
   var viewerContent = document.getElementById('viewerContent');
-  var smallScreen = window.matchMedia('(max-width: 1024px)').matches;
+  var hasTouchInput = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches;
+  var smallScreen = window.matchMedia('(max-width: 1024px)').matches || hasTouchInput;
   var isMobile = window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   var rendererPromise = null;
   var initializationPromise = null;
@@ -82,7 +84,7 @@
     showViewer();
   }
 
-  V.MOLECULES.forEach(function (mol) {
+  moleculeList.forEach(function (mol) {
     var btn = document.createElement('button');
     btn.className = 'mol-btn';
     btn.type = 'button';
@@ -91,7 +93,10 @@
     btn.setAttribute('aria-label', mol.name + ', ' + mol.formula);
     btn.setAttribute('data-key', mol.key);
     btn.tabIndex = -1;
-    btn.textContent = mol.name;
+    var nameSpan = document.createElement('span');
+    nameSpan.className = 'mol-btn-name';
+    nameSpan.textContent = mol.name;
+    btn.appendChild(nameSpan);
     var formula = document.createElement('span');
     formula.className = 'mol-btn-formula';
     formula.textContent = mol.formula;

@@ -1,240 +1,92 @@
-# Cloudflare Worker + Resend Email Backend Setup
+# Cloudflare Worker Setup
 
-## What This Does
-
-Your Glycolysis website now runs on Cloudflare Workers:
-
-```
-Browser
-  |
-  | POST /api/send-email
-  v
-Cloudflare Worker (worker/index.js)
-  |
-  | server-side Resend API call
-  v
-Resend
-  |
-  v
-Teacher's email inbox
-```
-
-The same Worker also serves all static website files from the `public/` directory.
-
----
+The deployed Worker serves the static site, creates signed quiz results, and verifies result codes. Teacher email delivery uses the student's local email app through `mailto:`. No email provider or email API key is required.
 
 ## Prerequisites
 
-- A Cloudflare account (free tier is fine)
-- A Resend account (free tier: 100 emails/day)
-- Node.js installed on your computer
+- A Cloudflare account
+- Node.js
+- Wrangler
 
----
+## Configure the Worker
 
-## Step 1: Get a Resend API Key
+From the project root, create the signing secret:
 
-1. Go to [https://resend.com](https://resend.com) and sign up (free)
-2. In the Resend dashboard, go to **API Keys**
-3. Create a new API key — copy it (it starts with `re_`)
-4. **Keep this key safe.** Never paste it into any source file.
-
----
-
-## Step 2: Set the Resend API Key as a Cloudflare Secret
-
-In your terminal, from the project root:
-
-```bash
-npx wrangler secret put RESEND_API_KEY
+```powershell
+npx wrangler@4.129.1 secret put RESULT_SIGNING_SECRET
 ```
 
-When prompted, paste your Resend API key. This stores it securely in Cloudflare — it will **never** appear in your source code or git history.
+Use a long random value. Keep it stable and private. Changing it invalidates existing verification records.
 
----
+The root `wrangler.toml` contains the Worker entry point, public asset directory, and KV bindings. The `QUIZ_SESSION_KV` namespace stores signed results. `EMAIL_RATE_KV` stores rate-limit counters.
 
-## Step 3: Deploy the Worker
+Create namespaces only when setting up a new Cloudflare account:
 
-```bash
-npx wrangler deploy
+```powershell
+npx wrangler@4.129.1 kv namespace create QUIZ_SESSION_KV
+npx wrangler@4.129.1 kv namespace create EMAIL_RATE_KV
 ```
 
-This deploys both:
-- The Worker code (`worker/index.js`) — handles `/api/send-email`
-- The static website (`public/`) — serves all other pages
+Copy the returned IDs into the top-level `[[kv_namespaces]]` entries in `wrangler.toml`.
 
----
+## Deploy
 
-## Step 4: Update the Frontend
+From the project root:
 
-In `public/story/story.js`, the `EMAIL_API` variable is already set to:
-
-```js
-var EMAIL_API = '/api/send-email';
+```powershell
+npx wrangler@4.129.1 deploy
 ```
 
-This is a **relative URL**, so it works automatically once the Worker is deployed. No changes needed.
+The Worker serves `public/` and exposes:
 
----
+- `POST /api/create-result`
+- `GET /api/verify-result?code=...`
 
-## Step 5: (Optional) Custom Sending Address
+## Result Flow
 
-By default, emails are sent from the Resend testing address:
-```
-Glycolysis Interactive <onboarding@resend.dev>
-```
+1. The student completes the five-question story quiz.
+2. The browser sends the selected answer indexes and student name to `/api/create-result`.
+3. The Worker calculates the score from its canonical answer key.
+4. The Worker signs and stores a result record in `QUIZ_SESSION_KV` for one year.
+5. The browser can download an HTML report containing the score, date, code, and verification link.
+6. The email form creates the same kind of signed result and opens the student's local email app with a prefilled `mailto:` message.
+7. The student may attach the downloaded report manually.
+8. A teacher verifies the result at `/verify.html` or through the link in the message.
 
-To use your own domain:
+The downloaded HTML file is a presentation copy and can be edited. The online verification record is authoritative.
 
-1. Go to the **Resend dashboard** → **Domains**
-2. Add your domain and verify it (add DNS records as instructed)
-3. Update `SEND_FROM` in `wrangler.toml`:
-   ```toml
-   [vars]
-   SEND_FROM = "Glycolysis Interactive <results@yourdomain.com>"
-   ```
-4. Redeploy: `npx wrangler deploy`
+## Local Development
 
----
-
-## How It Works
-
-### The Frontend (story.js)
-
-1. Student completes the quiz
-2. Student clicks **EMAIL RESULTS TO TEACHER**
-3. Student fills in: teacher name, teacher email, student name
-4. Frontend sends a POST request to `/api/send-email` with JSON body:
-   ```json
-   {
-     "teacherName": "Mr. Smith",
-     "teacherEmail": "smith@school.edu",
-     "studentName": "Jane Doe",
-     "subject": "Glycolysis Quiz Results - Jane Doe",
-     "message": "Quiz results text..."
-   }
-   ```
-
-### The Worker (worker/index.js)
-
-1. Receives the POST request
-2. Validates all fields (presence, email format, length limits)
-3. Sanitizes input (removes control characters)
-4. Calls the Resend API server-side (API key stays on the server)
-5. Returns success or error JSON to the frontend
-
-### Static Files
-
-All files in `public/` are served automatically by Cloudflare's edge network. No Worker code is needed for static content.
-
----
-
-## Running Locally
-
-```bash
-npx wrangler dev
+```powershell
+npx wrangler@4.129.1 dev
 ```
 
-Then open `http://localhost:8787` in your browser.
+Open the local URL printed by Wrangler. Opening `public/index.html` directly or using a different static server will not provide the Worker API routes.
 
-**Note:** The local dev server (`wrangler dev`) may crash on Windows due to miniflare compatibility issues. If this happens, you can test the static site by opening `public/index.html` directly in your browser. The email API won't work locally without a Resend API key.
+## Security Notes
 
-### Testing the API Locally
+- `RESULT_SIGNING_SECRET` is stored as a Cloudflare Worker secret and never sent to the browser.
+- Scores are calculated on the server from fixed answer indexes.
+- Result creation and verification have separate KV-backed rate limits.
+- Result codes expire after one year.
+- Request bodies are validated as JSON objects with bounded fields.
+- The verification page escapes values before displaying them.
+- The mailto message is user-editable by design; the verification link is the trusted source.
 
-To test the email API locally, you need to provide the Resend API key as a local secret:
+## Cloudflare Bindings
 
-```bash
-npx wrangler secret put RESEND_API_KEY
-npx wrangler dev
-```
-
-Without the key, the API will return a configuration error (not crash).
-
----
-
-## Where Secrets Are Stored
-
-| Secret | Where | How to Set |
-|--------|-------|------------|
-| `RESEND_API_KEY` | Cloudflare Workers secrets | `npx wrangler secret put RESEND_API_KEY` |
-| `TURNSTILE_SECRET` | Cloudflare Workers secrets | `npx wrangler secret put TURNSTILE_SECRET` (optional) |
-| `SEND_FROM` | `wrangler.toml` [vars] | Edit the file directly |
-
-**Never** put API keys in:
-- JavaScript or HTML files
-- `wrangler.toml`
-- Git commits
-- `.env` files that might be committed
-
----
-
-## Cloudflare Dashboard Steps (Manual)
-
-1. **Log in** to [https://dash.cloudflare.com](https://dash.cloudflare.com)
-2. Go to **Workers & Pages** → find your "glycolysis" worker
-3. Verify it's deployed and serving the site
-4. (Optional) Go to **Settings** → **Triggers** to add a custom domain route
-5. (Optional) Enable **Cloudflare Turnstile** for anti-abuse protection:
-   - Go to **Turnstile** → Create a site
-   - Get the site key and secret key
-   - Add the site key to your frontend form
-   - Set the secret key: `npx wrangler secret put TURNSTILE_SECRET`
-
----
-
-## Resend Dashboard Steps (Manual)
-
-1. **Log in** to [https://resend.com](https://resend.com)
-2. Verify your sending domain (if using custom domain)
-3. Check the **Emails** tab to see sent emails
-4. Monitor your usage (free tier: 100 emails/day)
-
----
-
-## Security Features
-
-- ✅ All input validated server-side (presence, format, length)
-- ✅ Control characters stripped from all inputs
-- ✅ Input length limits enforced
-- ✅ API key stored as Cloudflare secret (never in code)
-- ✅ No secret leakage in error messages or logs
-- ✅ CORS headers configured for API endpoints
-- ✅ Turnstile anti-abuse integration point (optional, requires manual setup)
-- ⚠️ Rate limiting requires Cloudflare dashboard configuration (manual)
-
----
+| Binding | Purpose |
+|---|---|
+| `ASSETS` | Serves the `public/` directory |
+| `QUIZ_SESSION_KV` | Stores signed result records |
+| `EMAIL_RATE_KV` | Stores rate-limit counters |
+| `RESULT_SIGNING_SECRET` | Signs and verifies result records |
 
 ## Files
 
 | File | Purpose |
-|------|---------|
-| `wrangler.toml` | Cloudflare Worker configuration (root) |
-| `worker/index.js` | Worker code: email API + static asset serving |
-| `worker/SETUP.md` | This file |
-| `public/` | All static website files |
-
----
-
-## GitHub Pages
-
-The original GitHub Pages deployment at `https://github.com/Rainier-PS/Glycolysis` remains **completely untouched**. The `main` branch has not been modified. This migration was done on the `cloudflare-migration` branch.
-
-Once you've verified the Cloudflare deployment works, you can:
-1. Keep both deployments running (GitHub Pages as backup)
-2. Switch the GitHub Pages deployment to the `cloudflare-migration` branch
-3. Or disable GitHub Pages entirely (your choice)
-
----
-
-## Troubleshooting
-
-**"Email service not configured on the server"**
-→ You haven't set the RESEND_API_KEY secret. Run: `npx wrangler secret put RESEND_API_KEY`
-
-**"Failed to send email"**
-→ Check your Resend dashboard for API errors. Make sure the API key is valid.
-
-**"Turnstile verification failed"**
-→ If you enabled Turnstile, make sure the site key and secret key match.
-
-**Static files not loading**
-→ Make sure the `public/` directory contains your website files and `wrangler.toml` points to it.
+|---|---|
+| `wrangler.toml` | Root Worker configuration |
+| `worker/index.js` | Worker API and asset routing |
+| `public/` | Deployed static files |
+| `public/verify.html` | Teacher verification page |

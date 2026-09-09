@@ -1,4 +1,4 @@
-# Glycolysis Project — MASTER AI Documentation
+# Glycolysis Project - MASTER AI Documentation
 
 ---
 
@@ -6,24 +6,24 @@
 
 | Field | Value |
 |---|---|
-| **Project Name** | Glycolysis — Interactive 3D Molecular Viewer |
+| **Project Name** | Glycolysis - Interactive 3D Molecular Viewer |
 | **Project Purpose** | Educational web visualization of the glycolysis metabolic pathway using interactive 3D molecular models |
-| **Project Type** | Static educational website (no build step, no server runtime) |
-| **Primary Audience** | Biochemistry students, educators, self-learners |
-| **Educational Level** | Undergraduate biochemistry |
+| **Project Type** | Static educational website with a Cloudflare Worker API (no build step) |
+| **Primary Audience** | Advanced high-school and introductory-university students with zero prior biology knowledge |
+| **Educational Level** | High-school to introductory-university (conceptual, zero prior knowledge assumed) |
 | **Primary Technologies** | HTML, CSS, vanilla JavaScript, 3Dmol.js (WebGL molecular renderer) |
 | **Architecture** | Landing page with 3D viewer + separate interactive narrated story page |
 | **Canonical Production Entry Points** | `index.html` (main), `story/index.html` (story) |
 | **Canonical Master Document** | `docs/MASTER.md` |
-| **Current Project Status** | Functional; story page extracted from single-file quarantine; production domain not yet configured |
-| **Last Verified Date** | 2026-09-06 |
+| **Current Project Status** | Major revision: 10-beat conceptual story, quiz system, signed downloadable results, verification, mailto teacher sharing, curated 9-molecule homepage viewer |
+| **Last Verified Date** | 2026-09-09 |
 | **Scientific Scope** | Ten enzyme-catalyzed reactions of glycolysis, from glucose to pyruvate, in the cytosol |
-| **Technical Scope** | Static HTML/CSS/JS with local 3Dmol.js vendor library and PubChem-derived SDF molecular assets |
+| **Technical Scope** | HTML/CSS/JS with local 3Dmol.js vendor library, PubChem-derived SDF molecular assets, and a Cloudflare Worker API |
 
 **This project is:**
 - An educational visualization of glycolysis
 - A 3D molecular viewer for glycolysis intermediates and cofactors
-- A narrated documentary walking through all ten reactions
+- A narrated conceptual story with quiz checkpoints and result sharing
 
 **This project is NOT:**
 - A medical diagnostic system
@@ -100,13 +100,13 @@
 
 When working on this project, use the following authority hierarchy:
 
-1. **Current production source code** — `index.html`, `src/viewer.js`, `src/init.js`, `styles/landing.css`, `story/index.html`, `story/story.js`, `story/story.css`, legal pages, `robots.txt`, `sitemap.xml`
-2. **Actual molecular SDF/data assets** — `molecules/**/*.sdf`
-3. **Actual manifests/configuration/tooling** — `glycolysis_molecular_asset_pack/manifest.json`, `glycolysis_molecular_asset_pack/download_pubchem_assets.py`
-4. **`docs/MASTER.md`** — This document
-5. **Specialized project documentation** — `docs/project.md`, `docs/story-page.md`
-6. **Historical material referenced in earlier revisions** — `quarantine/glycolysis_story.html` (not present in the current repository tree)
-7. **General assumptions** — Never rely on these alone
+1. **Current production source code** - `index.html`, `src/viewer.js`, `src/init.js`, `styles/landing.css`, `story/index.html`, `story/story.js`, `story/story.css`, legal pages, `robots.txt`, `sitemap.xml`
+2. **Actual molecular SDF/data assets** - `molecules/**/*.sdf`
+3. **Actual manifests/configuration/tooling** - `glycolysis_molecular_asset_pack/manifest.json`, `glycolysis_molecular_asset_pack/download_pubchem_assets.py`
+4. **`docs/MASTER.md`** - This document
+5. **Specialized project documentation** - `docs/project.md`, `docs/story-page.md`
+6. **Historical material referenced in earlier revisions** - `quarantine/glycolysis_story.html` (not present in the current repository tree)
+7. **General assumptions** - Never rely on these alone
 
 **Rule:** Implementation should never be inferred solely from documentation when the source is available.
 
@@ -182,43 +182,30 @@ The website teaches glycolysis through two complementary experiences:
 
 1. **Main Molecular Viewer** (`index.html`): An interactive 3D molecular viewer where users can inspect all 15 glycolysis intermediates and cofactors in ball-and-stick representation with CPK atom colors.
 
-2. **Interactive Story** (`story/index.html`): A cinematic, narrated documentary that walks through all ten reactions sequentially, showing the molecular transformations at each step with voice narration and captions.
+2. **Interactive Story** (`story/index.html`): A cinematic, narrated conceptual story that walks through glycolysis in 10 meaningful beats, with quiz checkpoints, signed downloadable results, verification, and optional teacher email composition.
 
 ### Intended Narrative Progression (Story)
 
-The story follows this conceptual progression:
+The story follows a conceptual 10-beat narrative progression:
 
 ```
-Whole cell
-  → Plasma membrane
-    → Cytosol
-      → Usable chemical energy / ATP concept
-        → Glucose
-          → Two phases overview
-            → Reaction 1 (Hexokinase)
-            → Reaction 2 (Phosphoglucose isomerase)
-            → Reaction 3 (PFK-1)
-            → Investment summary
-            → Reaction 4 (Aldolase)
-            → Reaction 5 (Triose phosphate isomerase)
-            → Reaction 6 (G3P dehydrogenase)
-            → Reaction 7 (Phosphoglycerate kinase)
-            → Reaction 8 (Phosphoglycerate mutase)
-            → Reaction 9 (Enolase)
-            → Reaction 10 (Pyruvate kinase)
-              → Pyruvate
-                → ATP accounting
-                → NADH accounting
-                → Carbon accounting
-                  → Oxygen independence
-                  → Fermentation context
-                  → Why glycolysis matters
-                    → Finale
+1. THE CELL - cinematic whole-cell context
+2. ENTER THE CYTOSOL - where glycolysis happens
+3. GLUCOSE + ATP INVESTMENT - starting molecule and energy input
+4. SECOND ATP + FRUCTOSE-1,6-BISPHOSPHATE - preparation for splitting
+5. THE SPLIT - 6C → 2 x 3C molecules
+6. NAD+ BECOMES NADH - electron transfer
+7. THE PAYOFF - ATP is generated
+8. PYRUVATE - final product
+9. THE ACCOUNTING - net yield summary
+10. WHAT THIS MEANS - broader context
+
+Quiz checkpoints appear after beats 3, 4, 5, 6, and 7.
 ```
 
 ### Relationship Between Molecular Visualization and Biochemical Pathway
 
-The 3D molecular visualizations show **actual PubChem 3D conformer records** — real atomic coordinates from a validated chemical database. These are not artistic approximations. The visualization is **ball-and-stick** with **CPK/Jmol atom colors**, providing a scientifically grounded representation of each molecule's structure.
+The 3D molecular visualizations show **actual PubChem 3D conformer records** - real atomic coordinates from a validated chemical database. These are not artistic approximations. The visualization is **ball-and-stick** with **CPK/Jmol atom colors**, providing a scientifically grounded representation of each molecule's structure.
 
 The pathway narrative contextualizes these structures within the biochemical logic of glycolysis, explaining what happens at each step, why it matters, and how the molecules relate to each other.
 
@@ -246,7 +233,7 @@ The pathway narrative contextualizes these structures within the biochemical log
 
 ### 3.2 All Ten Reactions
 
-#### Reaction 1 — Hexokinase
+#### Reaction 1 - Hexokinase
 
 | Field | Value |
 |---|---|
@@ -264,7 +251,7 @@ The pathway narrative contextualizes these structures within the biochemical log
 | **Educational purpose** | First irreversible step; traps glucose in cell; raises free-energy state |
 | **Caveat** | Phosphorylation adds negative charge, reducing membrane permeability |
 
-#### Reaction 2 — Phosphoglucose Isomerase
+#### Reaction 2 - Phosphoglucose Isomerase
 
 | Field | Value |
 |---|---|
@@ -281,7 +268,7 @@ The pathway narrative contextualizes these structures within the biochemical log
 | **Molecular assets** | `glucose-6-phosphate` → `fructose-6-phosphate` |
 | **Educational purpose** | Rearranges carbonyl from C1 to C2; prepares for symmetrical cleavage |
 
-#### Reaction 3 — Phosphofructokinase-1 (PFK-1)
+#### Reaction 3 - Phosphofructokinase-1 (PFK-1)
 
 | Field | Value |
 |---|---|
@@ -290,7 +277,7 @@ The pathway narrative contextualizes these structures within the biochemical log
 | **Enzyme** | Phosphofructokinase-1 (EC 2.7.1.11) |
 | **Substrate(s)** | Fructose-6-phosphate + ATP |
 | **Product(s)** | Fructose-1,6-bisphosphate + ADP |
-| **Reversibility** | Strongly irreversible — committed step |
+| **Reversibility** | Strongly irreversible - committed step |
 | **ATP change** | −1 |
 | **NADH change** | 0 |
 | **Reaction type** | Phosphoryl transfer |
@@ -298,7 +285,7 @@ The pathway narrative contextualizes these structures within the biochemical log
 | **Molecular assets** | `fructose-6-phosphate`, `atp` → `fructose-1-6-bisphosphate`, `adp` |
 | **Educational purpose** | Major committed and rate-controlling step; allosteric regulation point |
 
-#### Reaction 4 — Aldolase
+#### Reaction 4 - Aldolase
 
 | Field | Value |
 |---|---|
@@ -315,7 +302,7 @@ The pathway narrative contextualizes these structures within the biochemical log
 | **Molecular assets** | `fructose-1-6-bisphosphate` → `dhap`, `glyceraldehyde-3-phosphate` |
 | **Educational purpose** | Key cleavage: 6C → two 3C molecules; only G3P continues directly |
 
-#### Reaction 5 — Triose Phosphate Isomerase
+#### Reaction 5 - Triose Phosphate Isomerase
 
 | Field | Value |
 |---|---|
@@ -332,7 +319,7 @@ The pathway narrative contextualizes these structures within the biochemical log
 | **Molecular assets** | `dhap` → `glyceraldehyde-3-phosphate` |
 | **Educational purpose** | Completes investment phase; from here every reaction occurs twice per glucose |
 
-#### Reaction 6 — Glyceraldehyde-3-Phosphate Dehydrogenase
+#### Reaction 6 - Glyceraldehyde-3-Phosphate Dehydrogenase
 
 | Field | Value |
 |---|---|
@@ -349,7 +336,7 @@ The pathway narrative contextualizes these structures within the biochemical log
 | **Molecular assets** | `glyceraldehyde-3-phosphate`, `nad-plus` → `1-3-bisphosphoglycerate`, `nadh` |
 | **Educational purpose** | Only oxidation step; NAD⁺ → NADH; inorganic Pᵢ incorporated without ATP |
 
-#### Reaction 7 — Phosphoglycerate Kinase
+#### Reaction 7 - Phosphoglycerate Kinase
 
 | Field | Value |
 |---|---|
@@ -366,7 +353,7 @@ The pathway narrative contextualizes these structures within the biochemical log
 | **Molecular assets** | `1-3-bisphosphoglycerate`, `adp` → `3-phosphoglycerate`, `atp` |
 | **Educational purpose** | First substrate-level phosphorylation; begins repaying ATP investment |
 
-#### Reaction 8 — Phosphoglycerate Mutase
+#### Reaction 8 - Phosphoglycerate Mutase
 
 | Field | Value |
 |---|---|
@@ -383,7 +370,7 @@ The pathway narrative contextualizes these structures within the biochemical log
 | **Molecular assets** | `3-phosphoglycerate` → `2-phosphoglycerate` |
 | **Educational purpose** | Repositions phosphate from C3 to C2; prepares for dehydration |
 
-#### Reaction 9 — Enolase
+#### Reaction 9 - Enolase
 
 | Field | Value |
 |---|---|
@@ -400,7 +387,7 @@ The pathway narrative contextualizes these structures within the biochemical log
 | **Molecular assets** | `2-phosphoglycerate` → `phosphoenolpyruvate` |
 | **Educational purpose** | Creates high-energy enol phosphate (PEP) via dehydration |
 
-#### Reaction 10 — Pyruvate Kinase
+#### Reaction 10 - Pyruvate Kinase
 
 | Field | Value |
 |---|---|
@@ -515,7 +502,7 @@ The landing page `MOLECULES` array in `src/viewer.js` uses long-form display nam
 - **Color scheme:** Jmol/CPK
 - **Hydrogen default:** Hidden (heavy atoms only)
 - **Hydrogen toggle:** Optional H spheres visible
-- **Ionic state:** Represented in formula (e.g., 2−, 4−, +) — these are representative physiological forms
+- **Ionic state:** Represented in formula (e.g., 2−, 4−, +) - these are representative physiological forms
 - **Source-of-truth:** PubChem 3D conformer SDF records
 
 ---
@@ -547,8 +534,8 @@ The following are UI/rendering concerns and do not change chemical structure:
 
 ### Consequences
 
-- **Changing an SDF file** changes the actual molecular structure — this is a scientific change requiring review
-- **Changing rendering metadata** changes visual appearance only — this is a cosmetic change
+- **Changing an SDF file** changes the actual molecular structure - this is a scientific change requiring review
+- **Changing rendering metadata** changes visual appearance only - this is a cosmetic change
 - **Never** describe renderer configuration changes as if they change chemical structure
 - **Never** use AI-generated molecular coordinates to replace validated PubChem structures
 
@@ -607,7 +594,7 @@ All three viewers use identical atom styling:
 | N | 0.30 | 0.07 | Jmol |
 | P | 0.36 | 0.08 | Jmol |
 | H (shown) | 0.22 | 0.06 | Jmol |
-| H (hidden) | — | — | `{hidden: true}` |
+| H (hidden) | - | - | `{hidden: true}` |
 
 ### Rotation
 
@@ -655,8 +642,9 @@ If SDF fails to load:
 │   └── main.css                 Full pathway page CSS (retained extension base; not loaded)
 ├── story/
 │   ├── index.html               Interactive story HTML
-│   ├── story.js                 Story JavaScript (IIFE, scenes, narration, viewer)
-│   └── story.css                Story CSS (cinematic fullscreen layout)
+│   ├── story.js                 Story JavaScript (IIFE, scenes, narration, viewer, quiz, results, email)
+│   ├── story.css                Story CSS (cinematic fullscreen layout, quiz, results, email)
+│   └── questions.js             Quiz question data module
 ├── molecules/                   15 canonical SDF molecular assets
 │   ├── glucose/glucose.sdf
 │   ├── glucose-6-phosphate/glucose-6-phosphate.sdf
@@ -676,10 +664,15 @@ If SDF fails to load:
 ├── vendor/
 │   └── 3dmol/
 │       └── 3Dmol-min.js         Shared 3Dmol.js library (single canonical copy)
+├── public/                    Deployed static copy served by the Worker
+├── verify.html                Teacher verification page source
+├── worker/
+│   ├── index.js               Worker API and asset routing
+│   └── SETUP.md               Deployment and verification setup
 └── docs/
     ├── project.md               Human-facing project architecture doc
     ├── story-page.md            Story-specific documentation
-    └── MASTER.md                This file — canonical AI-facing reference
+    └── MASTER.md                This file - canonical AI-facing reference
 ```
 
 ### File Ownership
@@ -689,20 +682,25 @@ If SDF fails to load:
 | `index.html` | Landing page with 3D molecular viewer | Production |
 | `src/viewer.js` | 3Dmol viewer wrapper + molecule data (MOLECULES array) | Production |
 | `src/init.js` | DOM wiring: grid builder, controls, keyboard nav | Production |
-| `src/main.js` | Full pathway page JS (`MolViewer`, `App`, `PATHWAY_STEPS`) — retained extension base, not loaded by any page | Extension base |
+| `src/main.js` | Full pathway page JS (`MolViewer`, `App`, `PATHWAY_STEPS`) - retained extension base, not loaded by any page | Extension base |
 | `styles/landing.css` | Landing page styles | Production |
 | `styles/legal.css` | Shared legal page styles | Production |
-| `styles/main.css` | Full pathway page CSS design system — retained extension base, not loaded by any page | Extension base |
+| `styles/main.css` | Full pathway page CSS design system - retained extension base, not loaded by any page | Extension base |
 | `story/index.html` | Interactive story page | Production |
-| `story/story.js` | Story JavaScript (IIFE, `scenes`, narration, viewer) | Production |
-| `story/story.css` | Story CSS (cinematic fullscreen) | Production |
+| `story/story.js` | Story JavaScript (IIFE, `scenes`, narration, viewer, quiz, results, download, mailto) | Source |
+| `story/story.css` | Story CSS (cinematic fullscreen, quiz, results, email, download) | Source |
+| `story/questions.js` | Quiz question data module | Production |
 | `molecules/**/*.sdf` | Canonical molecular geometry data | Production data |
 | `vendor/3dmol/3Dmol-min.js` | 3Dmol.js molecular renderer | Vendor |
 | `docs/project.md` | Project architecture documentation | Documentation |
 | `docs/story-page.md` | Story-specific documentation | Documentation |
 | `docs/MASTER.md` | This file | Documentation |
-| `quarantine/glycolysis_story.html` | Pre-extraction single-file story — referenced by earlier revisions, not present in the current tree | Historical |
-| `glycolysis_molecular_asset_pack/` | Asset download/management tooling — referenced by earlier revisions, not present in the current tree | Tooling |
+| `public/` | Deployed static copy served by the Worker | Deployment |
+| `verify.html` | Teacher verification page source | Source |
+| `worker/index.js` | Signed-result API and asset routing | Production |
+| `worker/SETUP.md` | Deployment and verification setup | Documentation |
+| `quarantine/glycolysis_story.html` | Pre-extraction single-file story - referenced by earlier revisions, not present in the current tree | Historical |
+| `glycolysis_molecular_asset_pack/` | Asset download/management tooling - referenced by earlier revisions, not present in the current tree | Tooling |
 
 ---
 
@@ -710,10 +708,10 @@ If SDF fails to load:
 
 ### Files
 
-- `index.html` — HTML structure with external `styles/landing.css`, `vendor/3dmol/3Dmol-min.js`, `src/viewer.js`, and `src/init.js` (plus an inline decorative hero SVG)
-- `src/viewer.js` — `GlycolysisViewer` module: `MOLECULES` data, SDF fetch/cache, viewer lifecycle, style application
-- `src/init.js` — DOM wiring: grid builder, control buttons, radiogroup semantics, keyboard navigation
-- `styles/landing.css` — Design system, component styles, responsive rules
+- `index.html` - HTML structure with external `styles/landing.css`, `vendor/3dmol/3Dmol-min.js`, `src/viewer.js`, and `src/init.js` (plus an inline decorative hero SVG)
+- `src/viewer.js` - `GlycolysisViewer` module: `MOLECULES` data, SDF fetch/cache, viewer lifecycle, style application
+- `src/init.js` - DOM wiring: grid builder, control buttons, radiogroup semantics, keyboard navigation
+- `styles/landing.css` - Design system, component styles, responsive rules
 
 `src/main.js` and `styles/main.css` are a retained extension base for a scrollable pathway page; they are not loaded by any page and reference DOM (`#reactionScenes`, `#pathwayNav`) that no page provides.
 
@@ -740,7 +738,8 @@ If SDF fails to load:
 
 ### Data Architecture
 
-- `MOLECULES` array (`src/viewer.js`): 15 molecule definitions with `key`, `name`, `formula`, `category`
+- `MOLECULES` array (`src/viewer.js`): 15 molecule definitions with `key`, `name`, `formula`, `category` (complete asset library)
+- `CURATED` array (`src/viewer.js`): 9 key molecule definitions for the homepage viewer (glucose, G6P, FBP, G3P, NAD+, NADH, ATP, ADP, pyruvate)
 - `MOLECULE_ASSETS` array (`src/main.js`, extension base): 15 molecule definitions with `key`, `name`, `formula`, `cid`
 - `PATHWAY_STEPS` array (`src/main.js`, extension base): 10 reaction definitions with enzyme, equation, explanation, molecules
 - `NET_EQUATION` string (`src/main.js`, extension base): Overall glycolysis equation
@@ -775,13 +774,13 @@ If SDF fails to load:
 
 ### Files
 
-- `story/index.html` — HTML structure, references `story.css` and `story.js`
-- `story/story.js` — IIFE containing all story logic
-- `story/story.css` — Fullscreen cinematic layout
+- `story/index.html` - HTML structure, references `story.css` and `story.js`
+- `story/story.js` - IIFE containing all story logic
+- `story/story.css` - Fullscreen cinematic layout
 
 ### Page Architecture
 
-The story page is a **single fullscreen cinematic experience**. The entire `<body>` is the documentary container. There is no scrolling — scenes transition via fade overlays and molecular model changes.
+The story page is a **single fullscreen cinematic experience**. The entire `<body>` is the documentary container. There is no scrolling - scenes transition via fade overlays and molecular model changes. The story now includes quiz checkpoints, a results screen, signed downloadable results, verification, and local email-app composition.
 
 ### DOM Structure
 
@@ -859,68 +858,91 @@ After all captions for a scene finish playing, a countdown timer starts (default
 - Press **NEXT** to skip ahead immediately
 - Press **BACK** to go to the previous scene
 
+### Quiz System
+
+Quiz checkpoints appear after certain story beats. When a quiz triggers:
+1. Narration stops; auto-advance pauses
+2. A quiz overlay appears with the question and 4 options
+3. The learner selects an answer
+4. The answer locks; correct/incorrect state is shown
+5. An explanation is displayed
+6. The learner clicks CONTINUE to return to the story
+
+Quiz data is loaded from `story/questions.js` (external data module). Quiz rendering logic is in `story/story.js`.
+
+### Results Screen
+
+After the final beat, a results screen shows:
+- Score (e.g., 4 / 5)
+- Percentage (e.g., 80%)
+- Question-by-question review with learner's answer, correct answer, and explanation
+- Actions: REVIEW STORY, REVIEW QUESTIONS, DOWNLOAD RESULTS, EMAIL RESULTS TO TEACHER
+
+### Teacher Email
+
+A required email form collects teacher name, teacher email, and student name. The form:
+- Validates all inputs (trimmed, length-limited, email format, all required)
+- Uses textContent for DOM insertion (no innerHTML for user input)
+- Sanitizes input (control characters stripped, length-limited to 200 chars)
+- Opens the student's local email app with a prefilled `mailto:` message after creating a signed result
+- Handles errors gracefully
+
+The message includes the score, completion date, answer summary, verification code, and verification link. The student may attach the downloaded HTML report manually. No email provider is required.
+
+### Anti-Cheat System
+
+The Worker creates signed result records to prevent edited scores from appearing valid:
+
+1. The browser submits answer indexes and a student name to `/api/create-result`
+2. The Worker computes correctness from its fixed answer key
+3. The Worker signs the result with `RESULT_SIGNING_SECRET` and stores it in `QUIZ_SESSION_KV`
+4. `/api/verify-result` recomputes the signature before returning a valid record
+5. Result creation and verification have separate KV-backed rate limits
+6. Result records expire after one year
+
+The downloaded HTML and mailto message are editable presentation copies. The online verification record is authoritative. This system verifies result integrity, but does not prove who completed the quiz because result creation is a public browser API.
+
+### Tab Change Detection
+
+The quiz monitors browser tab focus to detect cheating:
+
+1. Before the story begins, a "Quiz Integrity Notice" overlay explains the monitoring rules
+2. When the student leaves the tab, a warning overlay appears with a live timer
+3. When the student returns after 5+ seconds, a reason input modal appears
+4. If the student is away for more than 5 minutes, the quiz auto-restarts from the beginning
+5. All tab changes are logged with timestamps, duration, and reasons
+6. The current mailto message includes the verification link, but does not send tab logs through a server email provider
+
+This prevents:
+- Looking up answers on another tab or window
+- Using external resources during the quiz
+- Leaving the quiz unattended for extended periods
+
+### Result Security
+
+- The signing secret never reaches the browser
+- The score is calculated from the server's canonical answer key
+- Verification returns only records with a valid signature
+- Inputs are bounded and escaped before display
+
 ---
 
 ## 12. Complete Story Scene Catalog
 
-**Total scenes: 27**
+**Total scenes: 10 conceptual beats**
 
-### INTRODUCTION (8 scenes)
-
-| # | ID | Molecule | Atmosphere | Reaction# | Purpose |
-|---|---|---|---|---|---|
-| 0 | `cell` | — | `cell` | — | Opening: every cell needs energy |
-| 1 | `cell-approach` | — | `approach` | — | Energy begins in food molecules |
-| 2 | `membrane` | — | `membrane` | — | Glucose phosphorylation retains it |
-| 3 | `cytosol` | — | `cytosol` | — | Glycolysis occurs in cytosol |
-| 4 | `glycolysis-overview` | — | `cytosol` | — | Ten reactions, glucose → 2 pyruvate |
-| 5 | `atp-explain` | ATP | — | — | ATP as energy-transfer molecule |
-| 6 | `glucose-explain` | Glucose | — | — | Glucose structure and role |
-| 7 | `two-phases` | Glucose | — | — | Investment vs payoff phases |
-
-### ENERGY INVESTMENT · REACTIONS 1–5 (7 scenes)
-
-| # | ID | Molecule | Reaction# | Enzyme | Purpose |
-|---|---|---|---|---|---|
-| 8 | `step1` | Glucose | 1 | Hexokinase | Phosphorylation of glucose |
-| 9 | `step2` | G6P | 2 | Phosphoglucose isomerase | Aldose → ketose isomerization |
-| 10 | `step3` | F6P | 3 | Phosphofructokinase-1 | Second phosphorylation; committed step |
-| 11 | `investment-summary` | FBP | — | — | Two ATP invested; sugar prepared |
-| 12 | `step4` | FBP | 4 | Aldolase | 6C cleaved into two 3C molecules |
-| 13 | `step5` | G3P | 5 | Triose phosphate isomerase | DHAP → G3P; two G3P per glucose |
-
-### ENERGY PAYOFF · REACTIONS 6–10 (5 scenes)
-
-| # | ID | Molecule | Reaction# | Enzyme | Purpose |
-|---|---|---|---|---|---|
-| 14 | `step6` | G3P | 6 | G3P dehydrogenase | Oxidation; NAD⁺ → NADH; Pᵢ added |
-| 15 | `step7` | 1,3-BPG | 7 | Phosphoglycerate kinase | First substrate-level phosphorylation |
-| 16 | `step8` | 3-PG | 8 | Phosphoglycerate mutase | Phosphate shift C3 → C2 |
-| 17 | `step9` | 2-PG | 9 | Enolase | Dehydration → PEP |
-| 18 | `step10` | PEP | 10 | Pyruvate kinase | Second substrate-level phosphorylation |
-
-### ACCOUNTING (4 scenes)
-
-| # | ID | Molecule | Purpose |
-|---|---|---|---|
-| 19 | `pyruvate` | Pyruvate | Two pyruvate molecules remain |
-| 20 | `atp-accounting` | Pyruvate | ATP: 2 invested, 4 produced, net +2 |
-| 21 | `nadh-accounting` | Pyruvate | 2 NAD⁺ → 2 NADH; NAD⁺ regeneration |
-| 22 | `carbon-accounting` | Pyruvate | 6C glucose → 2 × 3C pyruvate; carbon conserved |
-
-### DOWNSTREAM (3 scenes)
-
-| # | ID | Molecule | Purpose |
-|---|---|---|---|
-| 23 | `oxygen` | Pyruvate | Glycolysis doesn't require O₂ directly |
-| 24 | `fermentation` | Pyruvate | Aerobic vs anaerobic; NADH reoxidation |
-| 25 | `why-matters` | Pyruvate | Rapid ATP, NADH, pathway connections |
-
-### FINALE (1 scene)
-
-| # | ID | Molecule | Purpose |
-|---|---|---|---|
-| 26 | `finale` | — | One glucose. Ten reactions. Summary. |
+| # | ID | Phase | Molecule | Atmosphere | Quiz | Purpose |
+|---|---|---|---|---|---|---|
+| 0 | `cell` | intro | - | cell | - | Every living cell needs energy |
+| 1 | `cytosol` | intro | - | cytosol | - | Glycolysis in the cytosol; ten-reaction pathway |
+| 2 | `glucose` | intro | glucose | - | Q1 | Glucose + ATP as energy-transfer molecule |
+| 3 | `investment` | investment | g6p | - | Q2 | ATP investment; glucose → G6P → F6P → FBP |
+| 4 | `split` | investment | fbp | - | Q3 | Six-carbon split into two three-carbon G3P |
+| 5 | `nad-phase` | payoff | g3p | - | Q4 | NAD+ → NADH electron transfer |
+| 6 | `payoff` | payoff | bpg13 | - | Q5 | ATP generation via substrate-level phosphorylation |
+| 7 | `pyruvate` | accounting | pyruvate | - | - | Two pyruvate molecules formed |
+| 8 | `accounting` | accounting | - | - | - | Net yield: 2 ATP, 2 NADH, 2 pyruvate |
+| 9 | `finale` | finale | - | cytosol | - | Broader metabolic context; results screen |
 
 ---
 
@@ -930,33 +952,38 @@ After all captions for a scene finish playing, a countdown timer starts (default
 
 | Variable | File | Type | Purpose | Initial | Changed By | Depends On |
 |---|---|---|---|---|---|---|
-| `sceneToken` | `story.js` | number | Prevents stale scene transitions | `0` | `transitionToScene()` | — |
-| `narrationSeqToken` | `story.js` | number | Prevents stale narration callbacks | `0` | `stopNarration()`, `playCaptions()` | — |
-| `molTransitionSeq` | `story.js` | number | Prevents stale molecule transitions | `0` | `showMolecule()` | — |
-| `firstSceneReady` | `story.js` | boolean | Loading screen dismissed | `false` | `transitionToScene(0)` | — |
-| `currentSceneIndex` | `story.js` | number | Active scene index | `-1` | `transitionToScene()` | — |
-| `transitioning` | `story.js` | boolean | Prevents concurrent transitions | `false` | `transitionToScene()` | — |
-| `countdownTimer` | `story.js` | number|null | Auto-advance interval ID | `null` | `startCountdown()`, `cancelCountdown()` | — |
-| `countdownValue` | `story.js` | number | Current countdown seconds | `0` | `startCountdown()` | — |
-| `autoAdvanceActive` | `story.js` | boolean | Whether auto-advance is enabled | `true` | STAY button, `transitionToScene()` | — |
-| `rotating` | `story.js` | boolean | Auto-rotation state | `true` | AUTO button, R key | — |
-| `hydrogens` | `story.js` | boolean | Hydrogen visibility | `false` | H button, H key | — |
-| `currentMolKey` | `story.js` | string|null | Currently displayed molecule key | `null` | `showMolecule()`, `clearMolecule()` | — |
-| `narrationEnabled` | `story.js` | boolean | Narration on/off | `true` | NARRATION button, N key | — |
-| `narrationVolume` | `story.js` | number | Narration volume | `0.8` | — | — |
-| `currentUtterance` | `story.js` | SpeechSynthesisUtterance|null | Current speech utterance | `null` | `speakNarration()`, `stopNarration()` | — |
-| `cachedVoice` | `story.js` | SpeechSynthesisVoice|null | Preferred narration voice | `null` | `pickNarratorVoice()` | — |
-| `atmosphereState` | `story.js` | string|null | Atmosphere visualization state | `null` | `transitionToScene()` | — |
-| `atmosphereTargetAlpha` | `story.js` | number | Target atmosphere opacity | `0` | `transitionToScene()` | — |
-| `atmosphereAlpha` | `story.js` | number | Current atmosphere opacity | `0` | `drawAtmosphere()` | — |
-| `atmosphereAnimating` | `story.js` | boolean | Whether atmosphere animation is running | `false` | `startAtmosphereAnimation()` | — |
-| `particles` | `story.js` | array | Atmosphere particle positions | `[]` | `initParticles()` | — |
-| `sdfCache` | `story.js` | object | Cached SDF text by key | `{}` | `loadSDF()` | — |
-| `sdfLoading` | `story.js` | object | In-flight SDF fetch promises | `{}` | `loadSDF()` | — |
-| `sdfFailed` | `story.js` | object | Keys whose last fetch failed (skipped by `preload()` to avoid retry loops; explicit `showMolecule()` loads still retry) | `{}` | `loadSDF()` | — |
-| `currentCaptionIndex` | `story.js` | number | Current caption in sequence | `-1` | `playCaptions()` | — |
-| `captionsComplete` | `story.js` | boolean | All captions done | `false` | `playCaptions()`, `clearCaptions()` | — |
-| `PREFERS_REDUCED` | `story.js` | boolean | Reduced motion preference | `matchMedia(...)` | — | Browser setting |
+| `sceneToken` | `story.js` | number | Prevents stale scene transitions | `0` | `transitionToScene()` | - |
+| `narrationSeqToken` | `story.js` | number | Prevents stale narration callbacks | `0` | `stopNarration()`, `playCaptions()` | - |
+| `molTransitionSeq` | `story.js` | number | Prevents stale molecule transitions | `0` | `showMolecule()` | - |
+| `firstSceneReady` | `story.js` | boolean | Loading screen dismissed | `false` | `transitionToScene(0)` | - |
+| `currentSceneIndex` | `story.js` | number | Active scene index | `-1` | `transitionToScene()` | - |
+| `transitioning` | `story.js` | boolean | Prevents concurrent transitions | `false` | `transitionToScene()` | - |
+| `countdownTimer` | `story.js` | number|null | Auto-advance interval ID | `null` | `startCountdown()`, `cancelCountdown()` | - |
+| `countdownValue` | `story.js` | number | Current countdown seconds | `0` | `startCountdown()` | - |
+| `autoAdvanceActive` | `story.js` | boolean | Whether auto-advance is enabled | `true` | STAY button, `transitionToScene()` | - |
+| `rotating` | `story.js` | boolean | Auto-rotation state | `true` | AUTO button, R key | - |
+| `hydrogens` | `story.js` | boolean | Hydrogen visibility | `false` | H button, H key | - |
+| `currentMolKey` | `story.js` | string|null | Currently displayed molecule key | `null` | `showMolecule()`, `clearMolecule()` | - |
+| `narrationEnabled` | `story.js` | boolean | Narration on/off | `true` | NARRATION button, N key | - |
+| `narrationVolume` | `story.js` | number | Narration volume | `0.8` | - | - |
+| `currentUtterance` | `story.js` | SpeechSynthesisUtterance|null | Current speech utterance | `null` | `speakNarration()`, `stopNarration()` | - |
+| `cachedVoice` | `story.js` | SpeechSynthesisVoice|null | Preferred narration voice | `null` | `pickNarratorVoice()` | - |
+| `atmosphereState` | `story.js` | string|null | Atmosphere visualization state | `null` | `transitionToScene()` | - |
+| `atmosphereTargetAlpha` | `story.js` | number | Target atmosphere opacity | `0` | `transitionToScene()` | - |
+| `atmosphereAlpha` | `story.js` | number | Current atmosphere opacity | `0` | `drawAtmosphere()` | - |
+| `atmosphereAnimating` | `story.js` | boolean | Whether atmosphere animation is running | `false` | `startAtmosphereAnimation()` | - |
+| `particles` | `story.js` | array | Atmosphere particle positions | `[]` | `initParticles()` | - |
+| `sdfCache` | `story.js` | object | Cached SDF text by key | `{}` | `loadSDF()` | - |
+| `sdfLoading` | `story.js` | object | In-flight SDF fetch promises | `{}` | `loadSDF()` | - |
+| `sdfFailed` | `story.js` | object | Keys whose last fetch failed (skipped by `preload()` to avoid retry loops; explicit `showMolecule()` loads still retry) | `{}` | `loadSDF()` | - |
+| `currentCaptionIndex` | `story.js` | number | Current caption in sequence | `-1` | `playCaptions()` | - |
+| `captionsComplete` | `story.js` | boolean | All captions done | `false` | `playCaptions()`, `clearCaptions()` | - |
+| `PREFERS_REDUCED` | `story.js` | boolean | Reduced motion preference | `matchMedia(...)` | - | Browser setting |
+| `quizAnswers` | `story.js` | object | Quiz answers keyed by question ID | `{}` | `showQuiz()` | - |
+| `quizLocked` | `story.js` | object | Whether each question answer is locked | `{}` | `showQuiz()` | - |
+| `quizScore` | `story.js` | number | Number of correct answers | `0` | `showQuiz()` | - |
+| `quizCompleted` | `story.js` | number | Number of questions answered | `0` | `showQuiz()` | - |
+| `quizActive` | `story.js` | boolean | Whether quiz overlay is visible | `false` | `showQuiz()` | - |
 
 ### Main Page State Variables
 
@@ -978,7 +1005,7 @@ After all captions for a scene finish playing, a countdown timer starts (default
 
 ## 14. Asynchronous Safety and Race Conditions
 
-### 14.1 Scene Sequencing — `sceneToken`
+### 14.1 Scene Sequencing - `sceneToken`
 
 **Purpose:** Prevents stale asynchronous scene operations from mutating current scene state.
 
@@ -988,7 +1015,7 @@ After all captions for a scene finish playing, a countdown timer starts (default
 
 **Protected operations:** Molecule loading, caption playback, countdown start, UI updates.
 
-### 14.2 Molecule Transitions — `molTransitionSeq`
+### 14.2 Molecule Transitions - `molTransitionSeq`
 
 **Purpose:** Prevents stale delayed callbacks from modifying current molecule state.
 
@@ -998,7 +1025,7 @@ After all captions for a scene finish playing, a countdown timer starts (default
 
 **Protected operations:** Model loading, fade-in/out, style application, rotation start, `currentMolKey` update, `updateMolAria()`.
 
-### 14.3 Narration — `narrationSeqToken`
+### 14.3 Narration - `narrationSeqToken`
 
 **Purpose:** Prevents stale speech synthesis callbacks from affecting current narration.
 
@@ -1067,7 +1094,7 @@ The system iterates this preference list and picks the first voice whose `name` 
 
 ### Semantic HTML
 
-- `<main id="mainContent">` on the story page and legal pages; `<section id="viewerSection">` as the landing-page main region (landing page has no `<main>` wrapper — the viewer section carries `aria-labelledby`)
+- `<main id="mainContent">` on the story page and legal pages; `<section id="viewerSection">` as the landing-page main region (landing page has no `<main>` wrapper - the viewer section carries `aria-labelledby`)
 - `<section>` with `aria-labelledby` for major sections
 - `<footer role="contentinfo">` on main page and legal pages
 - `<h1>` for page title, `<h2>` for section headings
@@ -1078,8 +1105,8 @@ The system iterates this preference list and picks the first voice whose `name` 
 | Main Page | Story Page |
 |---|---|
 | `<section class="hero" aria-labelledby="hero-title">` | `<div id="mainContent" role="main">` |
-| `<section id="viewerSection">` (skip-link target) | — |
-| `<footer role="contentinfo">` | — |
+| `<section id="viewerSection">` (skip-link target) | - |
+| `<footer role="contentinfo">` | - |
 
 ### Heading Hierarchy
 
@@ -1131,9 +1158,9 @@ Primary interactive controls provide minimum 44px touch targets (`min-height: 44
 
 ### Contrast
 
-- Primary text: `#F3F5F7` on `#090B0F` — high contrast
-- Accent: `#D7FF5F` on `#090B0F` — high contrast
-- Muted text: `#98A1AD` on `#090B0F` — meets 4.5:1 for normal text and is the minimum-contrast color used for UI text
+- Primary text: `#F3F5F7` on `#090B0F` - high contrast
+- Accent: `#D7FF5F` on `#090B0F` - high contrast
+- Muted text: `#98A1AD` on `#090B0F` - meets 4.5:1 for normal text and is the minimum-contrast color used for UI text
 - Story `--faint` token is aliased to `#98A1AD` so no story UI text falls below 4.5:1
 
 ### Limitations
@@ -1167,12 +1194,12 @@ The molecule grid is a radio group with roving tabindex: one button has `tabinde
 |---|---|---|
 | Arrow Right | Next scene | Cancels countdown |
 | Space | Next scene | Cancels countdown |
-| Arrow Left | Previous scene | — |
+| Arrow Left | Previous scene | - |
 | N | Toggle narration | Not with Ctrl/Meta/Alt |
 | R | Toggle auto-rotation | Not with Ctrl/Meta/Alt |
 | H | Toggle hydrogen atoms | Not with Ctrl/Meta/Alt |
 | S | Stay on scene (cancel auto-advance) | Not with Ctrl/Meta/Alt |
-| Escape | Stop narration | — |
+| Escape | Stop narration | - |
 
 **Exception:** Keyboard shortcuts are disabled when focus is inside `<input>` or `<textarea>` elements, and letter shortcuts are ignored when Ctrl, Meta, or Alt is held (story page check: `e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA'`, plus `e.ctrlKey || e.metaKey || e.altKey` guards).
 
@@ -1226,7 +1253,7 @@ Story page uses `env(safe-area-inset-*)` for loading screen padding and scene co
 | `--font` / `--display` | `'Inter'` / `'Space Grotesk','Inter'` | story.css |
 | `--ease`, `--ease-out`, `--ease-in-out` | cubic-bezier curves | story.css |
 
-### CSS Custom Properties (main.css, extension base — not loaded)
+### CSS Custom Properties (main.css, extension base - not loaded)
 
 | Token | Value |
 |---|---|
@@ -1295,13 +1322,13 @@ The retained `styles/main.css` extension base defines `--radius-sm`/`--radius-md
 |---|---|---|
 | `<title>` | `Glycolysis \| Interactive 3D Molecular Viewer` | Implemented |
 | `<meta name="description">` | `An interactive molecular lecture exploring glycolysis from glucose to pyruvate.` | Implemented |
-| `<link rel="canonical">` | `https://glycolysis-project.example/` | **Placeholder** — replace with production URL |
+| `<link rel="canonical">` | `https://glycolysis-project.example/` | **Placeholder** - replace with production URL |
 | `<meta name="google-site-verification">` | `REPLACE_WITH_GOOGLE_VERIFICATION_TOKEN` | **Placeholder** |
 | `og:type` | `website` | Implemented |
 | `og:title` | `Glycolysis \| Interactive 3D Molecular Viewer` | Implemented |
 | `og:description` | `Explore glycolysis through an interactive 3D molecular viewer with all 15 pathway intermediates and cofactors.` | Implemented |
-| `og:url` | `https://glycolysis-project.example/` | **Placeholder** — replace with production URL |
-| `og:image` | not present | **Not configured** — no social preview image |
+| `og:url` | `https://glycolysis-project.example/` | **Placeholder** - replace with production URL |
+| `og:image` | not present | **Not configured** - no social preview image |
 | `twitter:card` | `summary_large_image` | Implemented |
 | `twitter:title` | `Glycolysis \| Interactive 3D Molecular Viewer` | Implemented |
 | `twitter:description` | `Explore all 15 glycolysis intermediates and cofactors in interactive 3D.` | Implemented |
@@ -1380,10 +1407,10 @@ The **copyright notice** (legal ownership) is distinct from **scientific/data at
 
 | Resource | Path/URL | Purpose | Required? | Fallback |
 |---|---|---|---|---|
-| 3Dmol.js | `vendor/3dmol/3Dmol-min.js` | Molecular renderer | **Yes** — core functionality | Error message in viewer |
-| Inter font | `fonts.googleapis.com` | Typography | No — system font fallback | `-apple-system, BlinkMacSystemFont, ...` |
-| Space Grotesk font | `fonts.googleapis.com` | Story typography | No — falls back to Inter | Inter fallback chain |
-| Molecular SDFs | `molecules/**/*.sdf` | Molecular geometry | **Yes** — for each molecule | `#molFallback` overlay (story) / previous molecule retained (main) |
+| 3Dmol.js | `vendor/3dmol/3Dmol-min.js` | Molecular renderer | **Yes** - core functionality | Error message in viewer |
+| Inter font | `fonts.googleapis.com` | Typography | No - system font fallback | `-apple-system, BlinkMacSystemFont, ...` |
+| Space Grotesk font | `fonts.googleapis.com` | Story typography | No - falls back to Inter | Inter fallback chain |
+| Molecular SDFs | `molecules/**/*.sdf` | Molecular geometry | **Yes** - for each molecule | `#molFallback` overlay (story) / previous molecule retained (main) |
 
 ### Offline Status
 
@@ -1552,12 +1579,15 @@ transitionToScene(index)
 
 ### Main → Story
 
-1. **Hero CTA:** `<a href="story/index.html" class="story-link">Interactive Story</a>`
-2. **Footer link:** `<a href="story/index.html">Interactive Story</a>` in the Explore column
+1. **Hero CTA:** `<a href="story/index.html" class="story-link">Enter the Story</a>`
 
 ### Story → Main
 
-1. **Narration controls:** `<a href="../index.html" class="nar-btn" aria-label="Back to molecular viewer">VIEWER</a>`
+1. **Navigation controls:** HOME button (`#btnHome`) links to `../index.html`
+
+### Footer
+
+The main page footer contains legal/informational links only. It does NOT include a Story link - the hero CTA serves as the primary story entry point.
 
 ### Path Resolution
 
@@ -1578,11 +1608,11 @@ Both pages must be deployed with the same relative directory structure. The proj
 
 | Directory | Purpose | Runtime? |
 |---|---|---|
-| `molecules/` | Canonical SDF molecular data (15 molecules) | Yes — fetched by both pages |
-| `vendor/3dmol/` | 3Dmol.js library | Yes — loaded by both pages |
-| `src/` | Main page JavaScript | Yes — loaded by main page |
-| `styles/` | Main page CSS | Yes — loaded by main page |
-| `story/` | Story page files | Yes — story page |
+| `molecules/` | Canonical SDF molecular data (15 molecules) | Yes - fetched by both pages |
+| `vendor/3dmol/` | 3Dmol.js library | Yes - loaded by both pages |
+| `src/` | Main page JavaScript | Yes - loaded by main page |
+| `styles/` | Main page CSS | Yes - loaded by main page |
+| `story/` | Story page files | Yes - story page |
 | `docs/` | Documentation | No |
 | `quarantine/` | Historical rollback files | No |
 | `glycolysis_molecular_asset_pack/` | Asset download/management tooling | No |
@@ -1595,8 +1625,8 @@ Both pages must be deployed with the same relative directory structure. The proj
 
 - **What it is:** The original single-file story implementation (HTML + inline CSS + inline JS in one file)
 - **Why it exists:** Retained as a rollback/reference copy until the extracted story was validated
-- **Production references:** None — production loads from `story/`
-- **Should it be edited:** No — it is historical material
+- **Production references:** None - production loads from `story/`
+- **Should it be edited:** No - it is historical material
 - **Removal conditions:** Can be removed after confirming: story scenes work, molecules load, narration functions, responsive behavior is confirmed, accessibility controls work, and navigation in both directions is verified
 - **Key difference from production:** In quarantine, molecule paths use `../glycolysis/assets/molecules/` (relative to quarantine/); in production, they use `../molecules/` (relative to story/)
 
@@ -1680,9 +1710,9 @@ Scientific Unicode characters (subscripts, superscripts, arrows, Greek letters) 
 
 ## 34. No-Emoji Policy
 
-- **No emoji in UI** — anywhere in the user interface
-- **No emoji in first-party source comments** — HTML, CSS, JS
-- **No emoji used as navigation icons** — use semantic/iconographic HTML/CSS mechanisms instead
+- **No emoji in UI** - anywhere in the user interface
+- **No emoji in first-party source comments** - HTML, CSS, JS
+- **No emoji used as navigation icons** - use semantic/iconographic HTML/CSS mechanisms instead
 - HTML entities like `&larr;`, `&rarr;`, `&hellip;` are acceptable and used (e.g., `← BACK`, `NEXT →`, `Preparing your journey…`)
 
 ---
@@ -1692,7 +1722,7 @@ Scientific Unicode characters (subscripts, superscripts, arrows, Greek letters) 
 - **First-party HTML/CSS/JS should contain no source comments**
 - This applies to `index.html`, `src/main.js`, `styles/main.css`, `story/index.html`, `story/story.js`, `story/story.css`
 - **Do not modify third-party libraries** (e.g., `3Dmol-min.js`) to satisfy this policy
-- This policy is in effect in the current codebase — all first-party files are comment-free
+- This policy is in effect in the current codebase - all first-party files are comment-free
 
 ---
 
@@ -1702,13 +1732,13 @@ Scientific Unicode characters (subscripts, superscripts, arrows, Greek letters) 
 
 #### `loadSDF(key)` (internal)
 - **Purpose:** Fetch and cache SDF file with in-flight dedup
-- **Parameters:** `key` (string) — molecule key
-- **Returns:** Promise<string|null> — SDF text or null on failure
+- **Parameters:** `key` (string) - molecule key
+- **Returns:** Promise<string|null> - SDF text or null on failure
 
 #### `init(containerId)`
 - **Purpose:** Create the 3Dmol viewer inside the container
-- **Parameters:** `containerId` (string) — DOM element ID
-- **Returns:** boolean — whether the viewer was created
+- **Parameters:** `containerId` (string) - DOM element ID
+- **Returns:** boolean - whether the viewer was created
 - **Side effects:** Shows `role="alert"` error if `$3Dmol` is unavailable
 
 #### `applyStyle()` (internal)
@@ -1717,16 +1747,16 @@ Scientific Unicode characters (subscripts, superscripts, arrows, Greek letters) 
 #### `display(key)`
 - **Purpose:** Load and display a molecule
 - **Parameters:** `key` (string)
-- **Returns:** Promise<boolean> — success/failure
+- **Returns:** Promise<boolean> - success/failure
 - **Side effects:** Keeps the previous molecule rendered on failure
 
 #### `toggleHydrogens()`
 - **Purpose:** Toggle hydrogen atom visibility
-- **Returns:** boolean — new hydrogen state
+- **Returns:** boolean - new hydrogen state
 
 #### `toggleAutoRotate()`
 - **Purpose:** Toggle auto-rotation (respects reduced motion)
-- **Returns:** boolean — new rotation state
+- **Returns:** boolean - new rotation state
 
 #### `resetView()`
 - **Purpose:** Reset camera to default zoom/orientation
@@ -1737,7 +1767,7 @@ Scientific Unicode characters (subscripts, superscripts, arrows, Greek letters) 
 ### `src/init.js` (production landing-page wiring)
 
 #### `setActive(key)` (internal)
-- **Purpose:** Update radiogroup state — `aria-checked` and roving tabindex
+- **Purpose:** Update radiogroup state - `aria-checked` and roving tabindex
 
 #### `selectMolecule(key)` (internal)
 - **Purpose:** Lazy-init viewer, sync radio state, update info bar, display molecule
@@ -1745,38 +1775,38 @@ Scientific Unicode characters (subscripts, superscripts, arrows, Greek letters) 
 #### Grid `keydown` handler
 - **Purpose:** Arrow/j/k/Home/End navigation with focus + selection
 
-### `src/main.js` (retained extension base — not loaded by any page)
+### `src/main.js` (retained extension base - not loaded by any page)
 
 #### `MolViewer.loadSDF(key)`
 - **Purpose:** Fetch and cache SDF file for a molecule
-- **Parameters:** `key` (string) — molecule key
-- **Returns:** Promise<string|null> — SDF text or null on failure
+- **Parameters:** `key` (string) - molecule key
+- **Returns:** Promise<string|null> - SDF text or null on failure
 - **Side effects:** Caches in `MolViewer.sdfCache`
 
 #### `MolViewer.create(containerId)`
 - **Purpose:** Create a 3Dmol viewer instance
-- **Parameters:** `containerId` (string) — DOM element ID
+- **Parameters:** `containerId` (string) - DOM element ID
 - **Returns:** State object or null
 - **Side effects:** Creates viewer, stores in `MolViewer.viewers`
 
 #### `MolViewer.applyStyle(state)`
 - **Purpose:** Apply CPK ball-and-stick styling to viewer
-- **Parameters:** `state` — viewer state object
+- **Parameters:** `state` - viewer state object
 - **Side effects:** Modifies viewer style
 
 #### `MolViewer.display(containerId, moleculeKey)`
 - **Purpose:** Load and display a molecule in a viewer
 - **Parameters:** `containerId` (string), `moleculeKey` (string)
-- **Returns:** Promise<boolean> — success/failure
+- **Returns:** Promise<boolean> - success/failure
 - **Side effects:** Updates viewer, shows error on failure
 
 #### `MolViewer.toggleHydrogens(containerId)`
 - **Purpose:** Toggle hydrogen atom visibility
-- **Returns:** boolean — new hydrogen state
+- **Returns:** boolean - new hydrogen state
 
 #### `MolViewer.toggleAutoRotate(containerId)`
 - **Purpose:** Toggle auto-rotation
-- **Returns:** boolean — new rotation state
+- **Returns:** boolean - new rotation state
 
 #### `MolViewer.resetView(containerId)`
 - **Purpose:** Reset camera to default zoom/orientation
@@ -1805,7 +1835,7 @@ Scientific Unicode characters (subscripts, superscripts, arrows, Greek letters) 
 
 #### `preload(keys)`
 - **Purpose:** Preemptively load SDF files
-- **Parameters:** `keys` (string[]) — molecule keys
+- **Parameters:** `keys` (string[]) - molecule keys
 
 #### `showMolecule(key)`
 - **Purpose:** Transition the viewer to display a new molecule
@@ -1820,14 +1850,14 @@ Scientific Unicode characters (subscripts, superscripts, arrows, Greek letters) 
 
 #### `showMolFallback(mol)`
 - **Purpose:** Show fallback UI when molecule fails to load
-- **Parameters:** `mol` — molecule definition object
+- **Parameters:** `mol` - molecule definition object
 
 #### `clearMolecule()`
 - **Purpose:** Remove all models from viewer, clear molecule state
 
 #### `speakNarration(text, onEnd, seq)`
 - **Purpose:** Speak text using Web Speech API
-- **Parameters:** `text` (string), `onEnd` (function), `seq` (number — narration sequence token)
+- **Parameters:** `text` (string), `onEnd` (function), `seq` (number - narration sequence token)
 - **Race protection:** Checks `seq === narrationSeqToken` in onend, onerror, catch
 
 #### `stopNarration()`
@@ -1939,6 +1969,33 @@ Scientific Unicode characters (subscripts, superscripts, arrows, Greek letters) 
 | `#legend` | `<div>` | Atom color legend | story/index.html |
 | `#molecularCaveat` | `<div>` | "Representative ionic form" note | story/index.html |
 | `#loadingIndicator` | `<div>` | "preparing molecular structure" text | story/index.html |
+| `#quizOverlay` | `<div>` | Quiz checkpoint overlay (dialog) | story/index.html |
+| `#quizContainer` | `<div>` | Quiz content container | story/index.html |
+| `#quizQuestionText` | `<div>` | Quiz question text | story/index.html |
+| `#quizOptions` | `<div>` | Quiz answer options (radiogroup) | story/index.html |
+| `#quizFeedback` | `<div>` | Quiz feedback area (aria-live) | story/index.html |
+| `#quizFeedbackText` | `<div>` | Quiz feedback text content | story/index.html |
+| `#quizContinue` | `<button>` | Quiz continue button | story/index.html |
+| `#quizProgress` | `<div>` | Quiz progress indicator | story/index.html |
+| `#quizProgressText` | `<span>` | Quiz progress text | story/index.html |
+| `#resultsOverlay` | `<div>` | Results screen overlay (dialog) | story/index.html |
+| `#resultsContainer` | `<div>` | Results content container | story/index.html |
+| `#resultsScore` | `<div>` | Score display (e.g., 4 / 5) | story/index.html |
+| `#resultsPercentage` | `<div>` | Percentage display (e.g., 80%) | story/index.html |
+| `#resultsReview` | `<div>` | Question review list | story/index.html |
+| `#resultsStoryBtn` | `<button>` | Review story action | story/index.html |
+| `#resultsQuestionsBtn` | `<button>` | Review questions action | story/index.html |
+| `#resultsEmailBtn` | `<button>` | Email results action | story/index.html |
+| `#emailOverlay` | `<div>` | Email form overlay (dialog) | story/index.html |
+| `#emailContainer` | `<div>` | Email form container | story/index.html |
+| `#emailForm` | `<form>` | Email form | story/index.html |
+| `#emailTeacherName` | `<input>` | Teacher name input | story/index.html |
+| `#emailTeacherEmail` | `<input>` | Teacher email input | story/index.html |
+| `#emailStudentName` | `<input>` | Student name input (optional) | story/index.html |
+| `#emailSend` | `<button>` | Send/open email button | story/index.html |
+| `#emailCancel` | `<button>` | Cancel email button | story/index.html |
+| `#emailNote` | `<p>` | Email instructions text | story/index.html |
+| `#emailError` | `<div>` | Email validation error (role=alert) | story/index.html |
 
 ---
 
@@ -1975,7 +2032,7 @@ Scientific Unicode characters (subscripts, superscripts, arrows, Greek letters) 
 - Mini footer (`.footer-mini`)
 - Responsive: 768px, 480px; `prefers-reduced-motion`
 
-### Main Page External CSS (`main.css`, extension base — not loaded)
+### Main Page External CSS (`main.css`, extension base - not loaded)
 
 - CSS custom properties (extended set)
 - Reset rules
@@ -2122,12 +2179,12 @@ document.addEventListener('visibilitychange', () => {
 HTML parse
   → CSS loaded (styles/landing.css)
   → 3Dmol.js loaded (vendor/3dmol/3Dmol-min.js)
-  → src/viewer.js executes — exposes window.GlycolysisViewer
+  → src/viewer.js executes - exposes window.GlycolysisViewer
   → src/init.js executes
     → Molecule radio buttons built from MOLECULES array
     → Event listeners attached (buttons, grid keydown)
     → selectMolecule('glucose') called
-      → V.init('viewer3d') — $3Dmol.createViewer created lazily
+      → V.init('viewer3d') - $3Dmol.createViewer created lazily
       → fetch molecules/glucose/glucose.sdf
         → sdfCache["glucose"] = text
         → viewer.removeAllModels() → viewer.addModel(text, "sdf")
@@ -2148,14 +2205,14 @@ HTML parse
   → Loading screen visible
   → story.js IIFE executes
     → resizeAtmosphere(), initParticles()
-    → initViewer() — creates 3Dmol viewer
-    → setupControls() — wires buttons + keyboard
-    → setupNarrationControls() — wires narration toggle
+    → initViewer() - creates 3Dmol viewer
+    → setupControls() - wires buttons + keyboard
+    → setupNarrationControls() - wires narration toggle
     → preload(['glucose', 'atp', 'adp', 'g6p', 'f6p', 'fbp', 'dhap', 'g3p'])
     → wait(800ms)
     → transitionToScene(0, true)
       → First scene loads
-        → dismissLoadingScreen() — fade out loading overlay
+        → dismissLoadingScreen() - fade out loading overlay
         → wait(1000ms)
         → showMolecule('atp') for scene 5 (preloaded)
         → playCaptions → speakNarration or timed display
@@ -2266,7 +2323,7 @@ HTML parse
 1. Add entry to `PATHWAY_STEPS` in `src/main.js`
 2. Add scene(s) to `scenes` array in `story/story.js`
 3. Update overall accounting if stoichiometry changes
-4. **Scientific review:** Mandatory — enzyme, equation, reversibility, stoichiometry
+4. **Scientific review:** Mandatory - enzyme, equation, reversibility, stoichiometry
 5. **Accessibility review:** Ensure reaction description is in `sr-only` content
 6. **Runtime testing:** Verify main page reaction scene and story scene
 
@@ -2378,7 +2435,7 @@ HTML parse
 | Emoji are prohibited | Professional, accessible, cross-platform consistent |
 | First-party source comments are prohibited | Clean codebase; documentation lives in docs/ |
 | Async token protection exists | Prevents race conditions from rapid user interaction |
-| Two separate CSS/JS systems | Landing page and story page each own their stylesheet and script — evolved from quarantine extraction |
+| Two separate CSS/JS systems | Landing page and story page each own their stylesheet and script - evolved from quarantine extraction |
 | Google Fonts loaded remotely | Typography quality; system font fallback for offline |
 | `#countdownText` uses `role="timer"` not `aria-live` | Avoids screen-reader spam from frequent countdown updates |
 
@@ -2408,13 +2465,13 @@ HTML parse
 
 ### Canonical Current Files
 
-- `story/index.html` — Production story HTML
-- `story/story.js` — Production story JavaScript
-- `story/story.css` — Production story CSS
+- `story/index.html` - Production story HTML
+- `story/story.js` - Production story JavaScript
+- `story/story.css` - Production story CSS
 
 ### Historical Files
 
-- `quarantine/glycolysis_story.html` — Original single-file implementation
+- `quarantine/glycolysis_story.html` - Original single-file implementation
 
 ---
 
@@ -2478,13 +2535,13 @@ Before considering this document complete, the following were cross-checked agai
 | Variable names | Yes |
 | DOM IDs | Yes |
 | CSS classes | Yes |
-| Molecule keys | Yes — all 15 verified |
-| PubChem CIDs | Yes — all 15 verified |
+| Molecule keys | Yes - all 15 verified |
+| PubChem CIDs | Yes - all 15 verified |
 | Molecular asset paths | Yes |
-| Reaction equations | Yes — all 10 verified |
-| Enzyme names | Yes — all 10 verified |
-| Scene count | Yes — 27 scenes verified |
-| Scene IDs | Yes — all 27 verified |
+| Reaction equations | Yes - all 10 verified |
+| Enzyme names | Yes - all 10 verified |
+| Scene count | Yes - 10 scenes verified |
+| Scene IDs | Yes - all 10 verified |
 | Keyboard shortcuts | Yes |
 | ARIA attributes | Yes |
 | Dependency paths | Yes |

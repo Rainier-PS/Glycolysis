@@ -1,37 +1,54 @@
 (function () {
   'use strict';
 
-  const BG = 0x090B0F;
-  const PREFERS_REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const IS_MOBILE = window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  var BG = 0x090B0F;
+  var PREFERS_REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var IS_MOBILE = window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  let sceneToken = 0;
-  let narrationSeqToken = 0;
-  let firstSceneReady = false;
-  let currentSceneIndex = -1;
-  let transitioning = false;
-  let countdownTimer = null;
-  let countdownValue = 0;
-  let countdownTotal = 0;
-  let onCountdownFire = null;
-  let autoAdvanceActive = true;
-  let rotating = !IS_MOBILE;
-  let hydrogens = false;
-  let currentMolKey = null;
-  let narrationEnabled = true;
-  let narrationVolume = .8;
-  let currentUtterance = null;
-  let molTransitionSeq = 0;
-  let storyPaused = false;
-  let pauseStart = 0;
+  var sceneToken = 0;
+  var narrationSeqToken = 0;
+  var firstSceneReady = false;
+  var currentSceneIndex = -1;
+  var transitioning = false;
+  var countdownTimer = null;
+  var countdownValue = 0;
+  var onCountdownFire = null;
+  var autoAdvanceActive = true;
+  var rotating = !IS_MOBILE;
+  var hydrogens = false;
+  var currentMolKey = null;
+  var narrationEnabled = true;
+  var narrationVolume = .8;
+  var currentUtterance = null;
+  var molTransitionSeq = 0;
+  var storyPaused = false;
+  var pauseStart = 0;
+
+  var quizAnswers = {};
+  var quizLocked = {};
+  var quizScore = 0;
+  var quizCompleted = 0;
+  var quizActive = false;
+  var quizFinished = false;
+
+  var storyStarted = false;
+  var tabChangeLog = [];
+  var tabLeftAt = 0;
+  var awayDuration = 0;
+  var awayReason = '';
+  var cheatingDetected = false;
+  var TAB_WARNING_THRESHOLD_MS = 5000;
+  var TAB_AUTO_RESTART_MS = 300000;
+
+  var QUESTIONS = window.GLYCOLYSIS_QUESTIONS || [];
 
   function wait(ms) {
-    return new Promise(resolve => {
-      let remaining = ms;
-      let lastTime = Date.now();
-      let timer = null;
+    return new Promise(function (resolve) {
+      var remaining = ms;
+      var lastTime = Date.now();
+      var timer = null;
       function check() {
-        const now = Date.now();
+        var now = Date.now();
         if (!storyPaused) {
           remaining -= (now - lastTime);
         }
@@ -47,17 +64,17 @@
   }
 
   function dismissLoadingScreen() {
-    const ls = document.getElementById('loadingScreen');
+    var ls = document.getElementById('loadingScreen');
     if (ls) {
       ls.classList.add('hidden');
-      setTimeout(() => {
+      setTimeout(function () {
         ls.remove();
       }, 900);
     }
     showUI(['navControls', 'narrationControls']);
   }
 
-  const MOL = {
+  var MOL = {
     glucose: {
       name: '\u03B2-D-Glucopyranose',
       formula: 'C\u2086H\u2081\u2082O\u2086',
@@ -165,26 +182,26 @@
     }
   };
 
-  const sdfCache = {};
-  const sdfLoading = {};
-  const sdfFailed = {};
+  var sdfCache = {};
+  var sdfLoading = {};
+  var sdfFailed = {};
 
-  async function loadSDF(key) {
-    if (sdfCache[key]) return sdfCache[key];
+  function loadSDF(key) {
+    if (sdfCache[key]) return Promise.resolve(sdfCache[key]);
     if (sdfLoading[key]) return sdfLoading[key];
-    const mol = MOL[key];
-    if (!mol) return null;
-    const p = fetch(mol.path)
-      .then(r => {
+    var mol = MOL[key];
+    if (!mol) return Promise.resolve(null);
+    var p = fetch(mol.path)
+      .then(function (r) {
         if (!r.ok) throw new Error(r.status);
         return r.text();
       })
-      .then(t => {
+      .then(function (t) {
         sdfCache[key] = t;
         delete sdfLoading[key];
         return t;
       })
-      .catch(() => {
+      .catch(function () {
         delete sdfLoading[key];
         sdfFailed[key] = true;
         return null;
@@ -194,7 +211,7 @@
   }
 
   function preload(keys) {
-    keys.forEach(k => {
+    keys.forEach(function (k) {
       if (!sdfCache[k] && !sdfLoading[k] && !sdfFailed[k]) loadSDF(k);
     });
   }
@@ -203,47 +220,22 @@
     return { text: text, duration: duration || 3000, deep: deep || null };
   }
 
-  const scenes = [
+  var scenes = [
     {
       id: 'cell',
       phase: 'intro',
       molecule: null,
       camera: null,
       captions: [
-        cap('Every living cell needs a continuous supply of usable energy.', 4000, 'Cells perform thousands of chemical reactions that require energy. Without a constant supply, cellular function would cease.')
+        cap('Every living cell needs a continuous supply of usable energy.', 4500, 'Cells perform thousands of chemical reactions that require energy. Without a constant supply, cellular function would cease.')
       ],
       enzyme: null,
       reaction: null,
       accounting: null,
       preloads: ['glucose', 'atp'],
       atmosphere: 'cell',
-      autoAdvanceDelay: 4500
-    },
-    {
-      id: 'cell-approach',
-      phase: 'intro',
-      molecule: null,
-      camera: null,
-      captions: [
-        cap('Much of that energy begins in food molecules, such as glucose.', 4000, 'Glucose is a six-carbon sugar. Cells can extract chemical energy from glucose through metabolic pathways.')
-      ],
-      enzyme: null,
-      reaction: null,
-      accounting: null,
-      atmosphere: 'approach'
-    },
-    {
-      id: 'membrane',
-      phase: 'intro',
-      molecule: null,
-      camera: null,
-      captions: [
-        cap('Inside the cell, glucose can be phosphorylated by hexokinase, helping retain it for metabolism.', 4200, 'The phosphorylation adds a negative charge, making the molecule less able to cross the plasma membrane.')
-      ],
-      enzyme: null,
-      reaction: null,
-      accounting: null,
-      atmosphere: 'membrane'
+      autoAdvanceDelay: 5000,
+      quiz: null
     },
     {
       id: 'cytosol',
@@ -251,423 +243,159 @@
       molecule: null,
       camera: null,
       captions: [
-        cap('Glycolysis takes place in the cytosol.', 3500, 'The cytosol is the fluid portion of the cytoplasm, outside the organelles. This is where all ten reactions of glycolysis occur.')
+        cap('Glycolysis takes place in the cytosol, the fluid portion of the cell outside the organelles.', 5000, 'The cytosol is where all ten reactions of glycolysis occur.'),
+        cap('Glycolysis is a ten-reaction pathway that breaks down glucose and captures some of its chemical energy.', 5500, 'The pathway converts one six-carbon glucose molecule into two three-carbon pyruvate molecules.')
       ],
       enzyme: null,
       reaction: null,
       accounting: null,
-      atmosphere: 'cytosol'
+      atmosphere: 'cytosol',
+      autoAdvanceDelay: 5000,
+      quiz: null
     },
     {
-      id: 'glycolysis-overview',
-      phase: 'intro',
-      molecule: null,
-      camera: null,
-      captions: [
-        cap('Glycolysis is a pathway of ten enzyme-catalyzed reactions.', 3500),
-        cap('It converts one six-carbon glucose molecule into two three-carbon pyruvate molecules.', 5000, 'Along the way, some of the chemical free energy of glucose is captured in ATP and NADH.')
-      ],
-      enzyme: null,
-      reaction: null,
-      accounting: null,
-      atmosphere: 'cytosol'
-    },
-    {
-      id: 'atp-explain',
-      phase: 'intro',
-      molecule: 'atp',
-      camera: { zoom: .85, speed: .2 },
-      captions: [
-        cap('ATP is a central chemical energy-transfer molecule used throughout the cell.', 5000, 'ATP stands for adenosine triphosphate. It has three phosphate groups. Cells use ATP to drive reactions that would otherwise be energetically unfavorable.'),
-        cap('In glycolysis, ATP can donate a phosphoryl group to an intermediate, helping drive the pathway forward.', 5500, 'This is not ATP hydrolysis producing energy directly. Instead, ATP donates phosphoryl groups to specific carbon positions on the sugar substrate.')
-      ],
-      enzyme: null,
-      reaction: 'ATP + H\u2082O \u2192 ADP + P\u1D62 (general ATP hydrolysis concept, not a glycolysis reaction)',
-      accounting: null,
-      preloads: ['adp', 'glucose', 'g6p'],
-      atmosphere: null
-    },
-    {
-      id: 'glucose-explain',
+      id: 'glucose',
       phase: 'intro',
       molecule: 'glucose',
       camera: { zoom: .85, speed: .25 },
       captions: [
-        cap('This is glucose. A six-carbon sugar.', 2500, 'The structure shown is \u03B2-D-glucopyranose, a cyclic form of glucose.'),
-        cap('Glucose is a six-carbon fuel molecule that cells can progressively break down and oxidize.', 5000)
+        cap('This is glucose. A six-carbon sugar and an important fuel molecule for cells.', 5000, 'The structure shown is \u03B2-D-glucopyranose, a cyclic form of glucose. Glucose is one of the most important energy sources for living cells.'),
+        cap('ATP is a molecule cells use to transfer usable chemical energy.', 4500, 'ATP stands for adenosine triphosphate. It has three phosphate groups. Cells use ATP to drive reactions that would otherwise be energetically unfavorable.')
       ],
       enzyme: null,
       reaction: null,
       accounting: null,
-      preloads: ['f6p', 'fbp'],
-      atmosphere: null
+      preloads: ['g6p', 'adp', 'fbp'],
+      atmosphere: null,
+      autoAdvanceDelay: 5000,
+      quiz: QUESTIONS[0] ? QUESTIONS[0].id : null
     },
     {
-      id: 'two-phases',
-      phase: 'intro',
-      molecule: 'glucose',
-      camera: { zoom: 1.0 },
-      captions: [
-        cap('Glycolysis has two phases.', 2000),
-        cap('First, the energy investment phase. The cell spends two ATP to prepare glucose for splitting.', 5000, 'Reactions 1 through 5: the six-carbon sugar is phosphorylated and rearranged, then cleaved into two three-carbon molecules.'),
-        cap('Then, the energy payoff phase. Energy is captured as ATP and NADH.', 4500, 'Reactions 6 through 10 occur twice for every original glucose molecule, because one glucose yields two three-carbon intermediates.')
-      ],
-      enzyme: null,
-      reaction: null,
-      accounting: null,
-      atmosphere: null
-    },
-    {
-      id: 'step1',
-      phase: 'investment',
-      molecule: 'glucose',
-      reactionNumber: 1,
-      camera: { zoom: .82, speed: .15 },
-      captions: [
-        cap('Reaction 1. Hexokinase.', 2500),
-        cap('ATP donates a phosphoryl group to glucose.', 3500, 'A phosphoryl group is a phosphate group transferred as part of a chemical reaction. Hexokinase catalyzes this transfer.'),
-        cap('Glucose becomes glucose-6-phosphate.', 3000, 'The added phosphate group carries a negative charge. This helps retain the molecule inside the cell, since charged molecules cross membranes less readily.'),
-        cap('One ATP has been spent.', 2000)
-      ],
-      enzyme: 'Hexokinase',
-      reaction: 'Glucose + ATP \u2192 Glucose-6-phosphate + ADP',
-      perReaction: { ATP: -1, NADH: 0 },
-      timesPerGlucose: 1,
-      preloads: ['dhap', 'g3p'],
-      atmosphere: null
-    },
-    {
-      id: 'step2',
+      id: 'investment',
       phase: 'investment',
       molecule: 'g6p',
-      reactionNumber: 2,
-      camera: { zoom: .85, speed: .2 },
-      captions: [
-        cap('Reaction 2. Phosphoglucose isomerase.', 2500),
-        cap('The molecule is rearranged into a different form.', 3000),
-        cap('The atoms are still the same. Their arrangement changes.', 3500, 'This is isomerisation. Glucose-6-phosphate, an aldose, is converted to fructose-6-phosphate, a ketose. No atoms are gained or lost. This rearrangement prepares the molecule for the later symmetrical cleavage.')
-      ],
-      enzyme: 'Phosphoglucose isomerase',
-      reaction: 'Glucose-6-P \u21CC Fructose-6-P',
-      perReaction: { ATP: 0, NADH: 0 },
-      timesPerGlucose: 1,
-      preloads: ['bpg13', 'nad', 'nadh'],
-      atmosphere: null
-    },
-    {
-      id: 'step3',
-      phase: 'investment',
-      molecule: 'f6p',
-      reactionNumber: 3,
       camera: { zoom: .82, speed: .15 },
       captions: [
-        cap('Reaction 3. Phosphofructokinase-1.', 3000),
-        cap('A second phosphoryl group is added. This costs another ATP.', 4000),
-        cap('This is the main committed step of glycolysis.', 3500, 'After this reaction, the molecule is committed to continuing through glycolysis under normal cellular conditions. PFK-1 is the key regulatory enzyme of the pathway.')
-      ],
-      enzyme: 'Phosphofructokinase-1',
-      reaction: 'Fructose-6-P + ATP \u2192 Fructose-1,6-BP + ADP',
-      perReaction: { ATP: -1, NADH: 0 },
-      timesPerGlucose: 1,
-      preloads: ['pg3', 'adp', 'atp'],
-      atmosphere: null
-    },
-    {
-      id: 'investment-summary',
-      phase: 'investment',
-      molecule: 'fbp',
-      reactionNumber: null,
-      camera: { zoom: 1.0 },
-      captions: [
-        cap('Two ATP have now been invested.', 2500),
-        cap('The six-carbon sugar is prepared for the crucial split.', 3500)
+        cap('Early in glycolysis, the cell uses ATP to add phosphate groups to the glucose pathway.', 5500, 'ATP donates a phosphoryl group to glucose. This is catalyzed by hexokinase. The phosphate helps prepare the molecule for the steps that follow.'),
+        cap('Glucose becomes glucose-6-phosphate. Then it is rearranged and phosphorylated again, using a second ATP.', 6000, 'The six-carbon molecule is rearranged into fructose-6-phosphate, then receives another phosphate group to become fructose-1,6-bisphosphate. Two ATP have now been invested.')
       ],
       enzyme: null,
       reaction: null,
-      perReaction: null,
-      timesPerGlucose: 0,
       accounting: null,
-      atmosphere: null
+      preloads: ['f6p', 'dhap', 'g3p'],
+      atmosphere: null,
+      autoAdvanceDelay: 5000,
+      quiz: QUESTIONS[1] ? QUESTIONS[1].id : null
     },
     {
-      id: 'step4',
+      id: 'split',
       phase: 'investment',
       molecule: 'fbp',
-      reactionNumber: 4,
       camera: { zoom: .7, speed: .1 },
       captions: [
-        cap('Reaction 4. Aldolase.', 2500),
-        cap('The six-carbon molecule is split into two three-carbon molecules.', 4000, 'Fructose-1,6-bisphosphate is cleaved into dihydroxyacetone phosphate (DHAP) and glyceraldehyde-3-phosphate (G3P). This is the central cleavage of glycolysis. The two products are not yet identical.')
+        cap('The six-carbon molecule splits into two three-carbon molecules.', 4500, 'Fructose-1,6-bisphosphate is cleaved into two three-carbon fragments: DHAP and glyceraldehyde-3-phosphate (G3P).'),
+        cap('DHAP is converted into G3P, leaving two G3P molecules to continue through the pathway.', 5000, 'From this point onward, the reactions of glycolysis happen twice for every original glucose molecule. This is critical for understanding why later outputs are doubled.')
       ],
-      enzyme: 'Aldolase',
-      reaction: 'Fructose-1,6-BP \u21CC DHAP + G3P',
-      perReaction: { ATP: 0, NADH: 0 },
-      timesPerGlucose: 1,
-      atmosphere: null
+      enzyme: null,
+      reaction: null,
+      accounting: null,
+      preloads: ['nad', 'nadh', 'bpg13'],
+      atmosphere: null,
+      autoAdvanceDelay: 5000,
+      quiz: QUESTIONS[2] ? QUESTIONS[2].id : null
     },
     {
-      id: 'step5',
-      phase: 'investment',
-      molecule: 'g3p',
-      reactionNumber: 5,
-      camera: { zoom: .88, speed: .2 },
-      captions: [
-        cap('Reaction 5. Triose phosphate isomerase.', 3000),
-        cap('One of the two three-carbon molecules is rearranged into the other form.', 4000, 'DHAP is converted to glyceraldehyde-3-phosphate. Only G3P continues directly through the payoff phase.'),
-        cap('Now there are two molecules of glyceraldehyde-3-phosphate.', 3500),
-        cap('From this point, every reaction occurs twice for each original glucose.', 4000, 'This is one of the most important ideas in glycolysis. One glucose yields two G3P, so reactions 6 through 10 each happen twice.')
-      ],
-      enzyme: 'Triose Phosphate Isomerase',
-      reaction: 'DHAP \u21CC G3P',
-      perReaction: { ATP: 0, NADH: 0 },
-      timesPerGlucose: 1,
-      preloads: ['pg2', 'pep', 'pyruvate'],
-      atmosphere: null
-    },
-    {
-      id: 'step6',
+      id: 'nad-phase',
       phase: 'payoff',
       molecule: 'g3p',
-      reactionNumber: 6,
       camera: { zoom: .85, speed: .15 },
       captions: [
-        cap('Reaction 6. Glyceraldehyde-3-phosphate dehydrogenase.', 3500),
-        cap('The carbon molecule is oxidized. NAD\u207A accepts electrons and is reduced to NADH.', 3500, 'Oxidation means the loss of electrons or reducing equivalents. Here, the aldehyde group of G3P is oxidized. NAD\u207A accepts those electrons and is reduced to NADH, a reduced electron carrier that carries high-energy electrons for subsequent metabolic reactions.'),
-        cap('An inorganic phosphate is added directly from solution. No ATP is used.', 3500, 'The inorganic phosphate (P\u1D62) is incorporated without ATP. This produces 1,3-bisphosphoglycerate, an intermediate with high phosphoryl-transfer potential.')
+        cap('The three-carbon molecule is processed in a reaction that transfers energy-rich electrons to NAD+.', 5500, 'NAD+ accepts electrons and is reduced to NADH. NADH is the reduced form of NAD+ and carries high-energy electrons that can be used in later cellular processes.'),
+        cap('Because there are two G3P molecules, two NAD+ become two NADH.', 4000, 'Each G3P donates electrons to one NAD+ molecule. Two G3P per glucose means two NADH produced.')
       ],
-      enzyme: 'Glyceraldehyde-3-phosphate dehydrogenase',
-      reaction: 'G3P + NAD\u207A + P\u1D62 \u21CC 1,3-BPG + NADH + H\u207A',
-      perReaction: { ATP: 0, NADH: 1 },
-      timesPerGlucose: 2,
-      atmosphere: null
+      enzyme: null,
+      reaction: null,
+      accounting: null,
+      preloads: ['pg3', 'pg2', 'pep', 'pyruvate'],
+      atmosphere: null,
+      autoAdvanceDelay: 5000,
+      quiz: QUESTIONS[3] ? QUESTIONS[3].id : null
     },
     {
-      id: 'step7',
+      id: 'payoff',
       phase: 'payoff',
       molecule: 'bpg13',
-      reactionNumber: 7,
-      camera: { zoom: .88, speed: .2 },
+      camera: { zoom: .85, speed: .15 },
       captions: [
-        cap('Reaction 7. Phosphoglycerate kinase.', 3000),
-        cap('A phosphoryl group is transferred from 1,3-bisphosphoglycerate to ADP.', 4000),
-        cap('ADP becomes ATP. This is substrate-level phosphorylation.', 3500, 'Substrate-level phosphorylation means ATP is made directly by transferring a phosphoryl group from a metabolic intermediate to ADP. This is distinct from oxidative phosphorylation.')
+        cap('Later reactions transfer phosphate groups to ADP, forming ATP.', 5000, 'Substrate-level phosphorylation: phosphate groups are transferred directly from metabolic intermediates to ADP, producing ATP.'),
+        cap('Because there are two three-carbon pathways, ATP generation happens twice. Four ATP are produced during the payoff phase.', 6000, 'Two ATP were invested at the beginning. Four ATP are produced now. The net gain is two ATP per glucose.')
       ],
-      enzyme: 'Phosphoglycerate kinase',
-      reaction: '1,3-BPG + ADP \u21CC 3-PG + ATP',
-      perReaction: { ATP: 1, NADH: 0 },
-      timesPerGlucose: 2,
-      atmosphere: null
-    },
-    {
-      id: 'step8',
-      phase: 'payoff',
-      molecule: 'pg3',
-      reactionNumber: 8,
-      camera: { zoom: .88, speed: .2 },
-      captions: [
-        cap('Reaction 8. Phosphoglycerate mutase.', 3000),
-        cap('The phosphoryl group is moved to a different position on the molecule.', 4000, '3-phosphoglycerate is rearranged to 2-phosphoglycerate. The same phosphate group is relocated. This prepares the molecule for dehydration.')
-      ],
-      enzyme: 'Phosphoglycerate mutase',
-      reaction: '3-PG \u21CC 2-PG',
-      perReaction: { ATP: 0, NADH: 0 },
-      timesPerGlucose: 2,
-      atmosphere: null
-    },
-    {
-      id: 'step9',
-      phase: 'payoff',
-      molecule: 'pg2',
-      reactionNumber: 9,
-      camera: { zoom: .82, speed: .15 },
-      captions: [
-        cap('Reaction 9. Enolase.', 2500),
-        cap('Water is removed from the molecule.', 3000),
-        cap('This rearranges the molecule into phosphoenolpyruvate, or PEP.', 4000, 'Dehydration produces PEP. Its structure gives it very high phosphoryl-transfer potential, meaning PEP can transfer its phosphoryl group to ADP very effectively.')
-      ],
-      enzyme: 'Enolase',
-      reaction: '2-PG \u21CC PEP + H\u2082O',
-      perReaction: { ATP: 0, NADH: 0 },
-      timesPerGlucose: 2,
-      atmosphere: null
-    },
-    {
-      id: 'step10',
-      phase: 'payoff',
-      molecule: 'pep',
-      reactionNumber: 10,
-      camera: { zoom: .82, speed: .15 },
-      captions: [
-        cap('Reaction 10. Pyruvate kinase.', 3000),
-        cap('The phosphoryl group is transferred from PEP to ADP.', 3500),
-        cap('ADP becomes ATP. The carbon skeleton becomes pyruvate.', 4000, 'This is the second substrate-level phosphorylation of glycolysis. Because there are two PEP molecules per glucose, two ATP are produced here.'),
-        cap('The six-carbon glucose has become two three-carbon pyruvate molecules.', 5000)
-      ],
-      enzyme: 'Pyruvate kinase',
-      reaction: 'PEP + ADP \u2192 Pyruvate + ATP',
-      perReaction: { ATP: 1, NADH: 0 },
-      timesPerGlucose: 2,
-      atmosphere: null
+      enzyme: null,
+      reaction: null,
+      accounting: null,
+      atmosphere: null,
+      autoAdvanceDelay: 5000,
+      quiz: QUESTIONS[4] ? QUESTIONS[4].id : null
     },
     {
       id: 'pyruvate',
       phase: 'accounting',
       molecule: 'pyruvate',
-      reactionNumber: null,
-      camera: { zoom: .9, speed: .15 },
+      camera: { zoom: .88, speed: .15 },
       captions: [
-        cap('Two pyruvate molecules remain.', 2500)
+        cap('After the remaining rearrangements and energy-capturing reactions, each three-carbon pathway ends as pyruvate.', 5500, 'One glucose produces two pyruvate molecules. The carbon skeleton is conserved: a six-carbon glucose becomes two three-carbon pyruvate molecules.')
       ],
       enzyme: null,
       reaction: null,
-      perReaction: null,
-      timesPerGlucose: 0,
-      accounting: { invested: 2, produced: 4, nadh: 2, showNet: false },
-      atmosphere: null
+      accounting: null,
+      atmosphere: null,
+      autoAdvanceDelay: 5000,
+      quiz: null
     },
     {
-      id: 'atp-accounting',
+      id: 'accounting',
       phase: 'accounting',
-      molecule: 'pyruvate',
-      reactionNumber: null,
-      camera: { zoom: 1.1 },
+      molecule: null,
+      camera: null,
       captions: [
-        cap('ATP accounting.', 2000),
-        cap('Two ATP were invested in the early reactions.', 3000),
-        cap('Four ATP were produced in the payoff phase.', 3000),
-        cap('The net gain is two ATP per glucose.', 3000)
+        cap('For every glucose molecule that enters glycolysis, the pathway produces two pyruvate, two NADH, and a net gain of two ATP.', 6500, 'ATP invested: 2. ATP produced: 4. Net ATP: +2. NADH produced: +2. Pyruvate produced: 2.')
       ],
       enzyme: null,
       reaction: null,
-      perReaction: null,
-      timesPerGlucose: 0,
-      accounting: { invested: 2, produced: 4, nadh: 2, showNet: true },
-      atmosphere: null
-    },
-    {
-      id: 'nadh-accounting',
-      phase: 'accounting',
-      molecule: 'pyruvate',
-      reactionNumber: null,
-      camera: { zoom: 1.0 },
-      captions: [
-        cap('Two NAD\u207A were reduced to two NADH.', 3500, 'NADH is a reduced electron carrier. Its electrons can ultimately contribute to oxidative metabolism, with cytosolic reducing equivalents transferred through cellular shuttle systems.'),
-        cap('NAD\u207A must be regenerated for glycolysis to continue.', 4000, 'Reaction 6 requires NAD\u207A. Without regeneration, glycolysis would stop. In aerobic cells, NADH donates electrons to mitochondrial respiration. When oxygen is unavailable, fermentation regenerates NAD\u207A.')
-      ],
-      enzyme: null,
-      reaction: null,
-      perReaction: null,
-      timesPerGlucose: 0,
-      accounting: { invested: 2, produced: 4, nadh: 2, showNet: true },
-      atmosphere: null
-    },
-    {
-      id: 'carbon-accounting',
-      phase: 'accounting',
-      molecule: 'pyruvate',
-      reactionNumber: null,
-      camera: { zoom: 1.0 },
-      captions: [
-        cap('Carbon accounting.', 2000),
-        cap('One six-carbon glucose has become two three-carbon pyruvate molecules.', 4500),
-        cap('No carbon atoms are lost. The carbon skeleton is conserved.', 3500)
-      ],
-      enzyme: null,
-      reaction: null,
-      perReaction: null,
-      timesPerGlucose: 0,
       accounting: { invested: 2, produced: 4, nadh: 2, showNet: true },
       atmosphere: null,
-      showEquation: true
-    },
-    {
-      id: 'oxygen',
-      phase: 'downstream',
-      molecule: 'pyruvate',
-      reactionNumber: null,
-      camera: { zoom: 1.0 },
-      captions: [
-        cap('Glycolysis itself does not directly require molecular oxygen.', 4000),
-        cap('It can occur when oxygen is available or unavailable.', 3500),
-        cap('However, the NADH produced must ultimately be reoxidized to NAD\u207A for glycolysis to continue.', 5000, 'Under aerobic conditions, NADH can contribute electrons to mitochondrial oxidative metabolism. When oxygen is unavailable, cells use fermentation pathways to regenerate NAD\u207A.')
-      ],
-      enzyme: null,
-      reaction: null,
-      perReaction: null,
-      timesPerGlucose: 0,
-      accounting: null,
-      atmosphere: null
-    },
-    {
-      id: 'fermentation',
-      phase: 'downstream',
-      molecule: 'pyruvate',
-      reactionNumber: null,
-      camera: { zoom: 1.1 },
-      captions: [
-        cap('In aerobic cells, NADH can contribute electrons to mitochondrial respiration.', 4500),
-        cap('When oxygen is unavailable, fermentation pathways regenerate NAD\u207A.', 4000, 'In lactic acid fermentation, pyruvate is reduced to lactate while NADH is oxidized back to NAD\u207A. This allows glycolysis to continue. Fermentation does not generate additional ATP beyond glycolysis.'),
-        cap('The ATP yield of glycolysis itself remains two ATP net per glucose.', 4000)
-      ],
-      enzyme: null,
-      reaction: null,
-      perReaction: null,
-      timesPerGlucose: 0,
-      accounting: null,
-      atmosphere: null
-    },
-    {
-      id: 'why-matters',
-      phase: 'downstream',
-      molecule: 'pyruvate',
-      reactionNumber: null,
-      camera: { zoom: 1.0 },
-      captions: [
-        cap('Why does glycolysis matter?', 2000),
-        cap('It can generate ATP rapidly without directly consuming molecular oxygen.', 3500),
-        cap('It generates NADH for later energy extraction.', 3000),
-        cap('It supplies intermediates that connect to other metabolic pathways.', 4000)
-      ],
-      enzyme: null,
-      reaction: null,
-      perReaction: null,
-      timesPerGlucose: 0,
-      accounting: null,
-      atmosphere: null
+      autoAdvanceDelay: 5000,
+      showEquation: true,
+      quiz: null
     },
     {
       id: 'finale',
       phase: 'finale',
       molecule: null,
       camera: null,
-      reactionNumber: null,
       captions: [
-        cap('One glucose.', 1500),
-        cap('Ten reactions.', 1500),
-        cap('Two pyruvate.', 1500),
-        cap('Two net ATP.', 1500),
-        cap('Two NADH.', 1500),
-        cap('Glycolysis is one of the most widespread metabolic pathways in biology.', 5000)
+        cap('Glycolysis is only one part of cellular metabolism.', 3500),
+        cap('But in just ten reactions, a cell has transformed one six-carbon glucose molecule into two three-carbon pyruvate molecules while capturing energy as ATP and NADH.', 7000),
+        cap('Pyruvate and NADH can participate in later metabolic processes.', 4000)
       ],
       enzyme: null,
       reaction: null,
-      perReaction: null,
-      timesPerGlucose: 0,
       accounting: null,
       atmosphere: 'cytosol',
       fadeToBlack: true,
-      autoAdvanceDelay: 8000
+      autoAdvanceDelay: 6000,
+      quiz: null
     }
   ];
 
-  const atmosphereCanvas = document.getElementById('atmosphere');
-  const actx = atmosphereCanvas.getContext('2d');
-  let atmosphereState = null, atmosphereAlpha = 0, atmosphereTargetAlpha = 0, particles = [], atmosphereAnimating = false;
-  let atmosphereWidth = 0, atmosphereHeight = 0;
+  var atmosphereCanvas = document.getElementById('atmosphere');
+  var actx = atmosphereCanvas.getContext('2d');
+  var atmosphereState = null, atmosphereAlpha = 0, atmosphereTargetAlpha = 0, particles = [], atmosphereAnimating = false;
+  var atmosphereWidth = 0, atmosphereHeight = 0;
 
   function resizeAtmosphere() {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    var width = window.innerWidth;
+    var height = window.innerHeight;
     if (width === atmosphereWidth && height === atmosphereHeight) return;
     atmosphereWidth = width;
     atmosphereHeight = height;
@@ -677,8 +405,8 @@
 
   function initParticles() {
     particles = [];
-    const c = PREFERS_REDUCED ? 10 : (IS_MOBILE ? 15 : 45);
-    for (let i = 0; i < c; i++)
+    var c = PREFERS_REDUCED ? 10 : (IS_MOBILE ? 15 : 45);
+    for (var i = 0; i < c; i++)
       particles.push({
         x: Math.random() * innerWidth,
         y: Math.random() * innerHeight,
@@ -692,7 +420,7 @@
 
   function drawAtmosphere(time) {
     if (PREFERS_REDUCED || !atmosphereAnimating) return;
-    const w = atmosphereCanvas.width, h = atmosphereCanvas.height;
+    var w = atmosphereCanvas.width, h = atmosphereCanvas.height;
     actx.clearRect(0, 0, w, h);
     atmosphereAlpha += (atmosphereTargetAlpha - atmosphereAlpha) * .05;
     if (atmosphereAlpha < .005 && atmosphereTargetAlpha === 0) {
@@ -706,8 +434,8 @@
       if (atmosphereAnimating) requestAnimationFrame(drawAtmosphere);
       return;
     }
-    const cx = w / 2, cy = h / 2, cellR = Math.min(w, h) * .35;
-    let zoom = 1;
+    var cx = w / 2, cy = h / 2, cellR = Math.min(w, h) * .35;
+    var zoom = 1;
     if (atmosphereState === 'approach') zoom = 1.3;
     if (atmosphereState === 'membrane') zoom = 2.5;
     if (atmosphereState === 'cytosol') zoom = 4.0;
@@ -746,7 +474,7 @@
       { x: cx + cellR * .3, y: cy - cellR * .2, a: -.5, w: cellR * .14, h: cellR * .05 },
       { x: cx + cellR * .2, y: cy + cellR * .3, a: .3, w: cellR * .15, h: cellR * .055 },
       { x: cx - cellR * .25, y: cy + cellR * .28, a: -.3, w: cellR * .13, h: cellR * .05 }
-    ].forEach(m => {
+    ].forEach(function (m) {
       actx.save();
       actx.translate(m.x, m.y);
       actx.rotate(m.a);
@@ -758,15 +486,15 @@
       actx.restore();
     });
 
-    const t = (time || 0) * .001;
-    particles.forEach(p => {
+    var t = (time || 0) * .001;
+    particles.forEach(function (p) {
       p.x += p.vx;
       p.y += p.vy;
       if (p.x < 0) p.x = w;
       if (p.x > w) p.x = 0;
       if (p.y < 0) p.y = h;
       if (p.y > h) p.y = 0;
-      actx.fillStyle = `rgba(180,210,240,${p.alpha * (.5 + .5 * Math.sin(t + p.pulse))})`;
+      actx.fillStyle = 'rgba(180,210,240,' + (p.alpha * (.5 + .5 * Math.sin(t + p.pulse))) + ')';
       actx.beginPath();
       actx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
       actx.fill();
@@ -782,7 +510,7 @@
     }
   }
 
-  let viewer = null;
+  var viewer = null;
 
   function initViewer() {
     try {
@@ -794,9 +522,9 @@
 
   function ensureViewer() {
     if (viewer) return Promise.resolve(viewer);
-    const delays = [200, 400, 800];
-    let attempt = 0;
-    return new Promise(resolve => {
+    var delays = [200, 400, 800];
+    var attempt = 0;
+    return new Promise(function (resolve) {
       function tryCreate() {
         if (viewer) { resolve(viewer); return; }
         if (attempt >= delays.length) {
@@ -816,13 +544,13 @@
   }
 
   function showViewerRetryButton() {
-    const retryDiv = document.createElement('div');
+    var retryDiv = document.createElement('div');
     retryDiv.id = 'viewerRetryOverlay';
     retryDiv.setAttribute('role', 'alert');
     retryDiv.setAttribute('aria-label', '3D viewer failed to load');
     retryDiv.innerHTML = '<div style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(9,11,15,.95)"><div style="text-align:center;color:#c8cdd0;font-family:var(--display,Space Grotesk,sans-serif)"><p style="font-size:16px;margin-bottom:12px">The 3D molecular viewer could not initialize.</p><button id="viewerRetryBtn" style="padding:10px 24px;border:1px solid rgba(200,205,208,.25);border-radius:6px;background:rgba(200,205,208,.08);color:#c8cdd0;font-size:13px;font-family:inherit;cursor:pointer">RETRY</button></div></div>';
     document.body.appendChild(retryDiv);
-    document.getElementById('viewerRetryBtn').addEventListener('click', () => {
+    document.getElementById('viewerRetryBtn').addEventListener('click', function () {
       retryDiv.remove();
       viewer = null;
       ensureViewer();
@@ -843,24 +571,24 @@
     } catch (e) {}
   }
 
-  const molFade = document.getElementById('molFade');
-  const molFallback = document.getElementById('molFallback');
-  const molFallbackText = document.getElementById('molFallbackText');
+  var molFade = document.getElementById('molFade');
+  var molFallback = document.getElementById('molFallback');
+  var molFallbackText = document.getElementById('molFallbackText');
 
-  async function showMolecule(key) {
-    if (!viewer) await ensureViewer();
-    return new Promise(resolve => {
+  function showMolecule(key) {
+    if (!viewer) return ensureViewer().then(function () { return showMolecule(key); });
+    return new Promise(function (resolve) {
       if (!viewer || currentMolKey === key) {
         resolve();
         return;
       }
-      const mol = MOL[key];
+      var mol = MOL[key];
       if (!mol) {
         resolve();
         return;
       }
-      const myMolSeq = ++molTransitionSeq;
-      const afterLoad = text => {
+      var myMolSeq = ++molTransitionSeq;
+      var afterLoad = function (text) {
         if (myMolSeq !== molTransitionSeq) {
           resolve();
           return;
@@ -868,33 +596,18 @@
         document.getElementById('loadingIndicator').classList.remove('visible');
         if (text) {
           try {
-            if (myMolSeq !== molTransitionSeq) {
-              resolve();
-              return;
-            }
+            if (myMolSeq !== molTransitionSeq) { resolve(); return; }
             molFade.style.opacity = '1';
-            if (myMolSeq !== molTransitionSeq) {
-              molFade.style.opacity = '0';
-              resolve();
-              return;
-            }
+            if (myMolSeq !== molTransitionSeq) { molFade.style.opacity = '0'; resolve(); return; }
             viewer.removeAllModels();
-            if (myMolSeq !== molTransitionSeq) {
-              molFade.style.opacity = '0';
-              resolve();
-              return;
-            }
+            if (myMolSeq !== molTransitionSeq) { molFade.style.opacity = '0'; resolve(); return; }
             viewer.addModel(text, 'sdf');
-            if (myMolSeq !== molTransitionSeq) {
-              molFade.style.opacity = '0';
-              resolve();
-              return;
-            }
+            if (myMolSeq !== molTransitionSeq) { molFade.style.opacity = '0'; resolve(); return; }
             applyStyle();
             viewer.zoomTo();
             viewer.zoom(.92);
             viewer.render();
-            setTimeout(() => {
+            setTimeout(function () {
               if (myMolSeq !== molTransitionSeq) return;
               molFade.style.opacity = '0';
               if (rotating) try { viewer.spin('y', .25); } catch (e) {}
@@ -903,20 +616,14 @@
               updateMolAria(key);
             }, PREFERS_REDUCED ? 10 : 300);
           } catch (e) {
-            if (myMolSeq !== molTransitionSeq) {
-              resolve();
-              return;
-            }
+            if (myMolSeq !== molTransitionSeq) { resolve(); return; }
             molFade.style.opacity = '0';
             showMolFallback(mol);
             currentMolKey = key;
             updateMolAria(key);
           }
         } else {
-          if (myMolSeq !== molTransitionSeq) {
-            resolve();
-            return;
-          }
+          if (myMolSeq !== molTransitionSeq) { resolve(); return; }
           molFade.style.opacity = '0';
           showMolFallback(mol);
           currentMolKey = key;
@@ -924,7 +631,7 @@
         }
         resolve();
       };
-      const sdfText = sdfCache[key];
+      var sdfText = sdfCache[key];
       if (!sdfText) {
         document.getElementById('loadingIndicator').classList.add('visible');
         loadSDF(key).then(afterLoad);
@@ -935,18 +642,32 @@
   }
 
   function updateMolAria(key) {
-    const d = el.srMolDesc;
+    var d = el.srMolDesc;
     if (!d) return;
     if (!key || !MOL[key]) {
       d.textContent = '';
       return;
     }
-    const m = MOL[key];
+    var m = MOL[key];
     d.textContent = m.name + '. ' + m.formula + '. ' + (m.desc || '') + ' 3D molecular visualization. ' + (m.cid ? 'PubChem CID ' + m.cid + '.' : '');
   }
 
   function showMolFallback(mol) {
-    molFallbackText.innerHTML = `<div class="fb-name">${mol.name}</div><div>${mol.formula}</div><div style="margin-top:8px;font-size:12px">${mol.desc || 'Molecular structure unavailable. Reaction information remains available.'}</div>`;
+    molFallbackText.textContent = '';
+    var nameDiv = document.createElement('div');
+    nameDiv.className = 'fb-name';
+    nameDiv.textContent = mol.name;
+    molFallbackText.appendChild(nameDiv);
+    var formulaDiv = document.createElement('div');
+    formulaDiv.textContent = mol.formula;
+    molFallbackText.appendChild(formulaDiv);
+    if (mol.desc) {
+      var descDiv = document.createElement('div');
+      descDiv.style.marginTop = '8px';
+      descDiv.style.fontSize = '12px';
+      descDiv.textContent = mol.desc + ' Molecular structure unavailable. Reaction information remains available.';
+      molFallbackText.appendChild(descDiv);
+    }
     molFallback.classList.add('show');
   }
 
@@ -962,42 +683,45 @@
     updateMolAria(null);
   }
 
-  const el = {};
+  var el = {};
   [
     'viewport', 'atmosphere', 'caption', 'captionText', 'sceneControls', 'countdownText', 'navRow',
     'stepCounter', 'sceneLabel', 'molLabel', 'molLabelName', 'molLabelFormula',
     'enzymeLabel', 'enzymeName', 'enzymeReaction', 'accounting', 'legend',
     'fadeOverlay', 'loadingIndicator', 'srLive', 'btnPrev', 'btnNext', 'btnStay', 'btnPause',
     'btnRotate', 'btnHydrogen', 'btnReset', 'viewerToolbar',
-    'navControls', 'narrationControls', 'btnNarration', 'btnHome', 'btnRestart', 'mobileToolsToggle', 'deepDetail', 'deepDetailText', 'overallEquation', 'molFallback', 'srMolDesc'
-  ].forEach(id => {
+    'navControls', 'narrationControls', 'btnNarration', 'btnHome', 'btnRestart', 'mobileToolsToggle', 'deepDetail', 'deepDetailText', 'overallEquation', 'molFallback', 'srMolDesc',
+    'quizOverlay', 'quizContainer', 'quizQuestionText', 'quizOptions', 'quizFeedback', 'quizFeedbackText',
+    'quizContinue', 'quizProgress', 'quizProgressText',
+    'resultsOverlay', 'resultsScore', 'resultsPercentage', 'resultsReview', 'resultsStoryBtn', 'resultsQuestionsBtn', 'resultsDownloadBtn', 'resultsEmailBtn', 'emailOverlay', 'emailForm', 'emailTeacherName', 'emailTeacherEmail', 'emailStudentName', 'emailSend', 'emailCancel', 'emailNote', 'emailError', 'downloadOverlay', 'downloadForm', 'downloadStudentName', 'downloadSubmit', 'downloadCancel', 'downloadError'
+  ].forEach(function (id) {
     el[id] = document.getElementById(id);
   });
 
   function showUI(ids) {
-    ids.forEach(id => {
+    ids.forEach(function (id) {
       if (el[id]) el[id].classList.add('visible');
     });
   }
 
   function hideUI(ids) {
-    ids.forEach(id => {
+    ids.forEach(function (id) {
       if (el[id]) el[id].classList.remove('visible');
     });
   }
 
   function pickNarratorVoice() {
     if (!('speechSynthesis' in window)) return null;
-    const v = speechSynthesis.getVoices();
-    const p = ['Google UK English Female', 'Google UK English Male', 'Samantha', 'Karen', 'Daniel', 'Microsoft Zira', 'Microsoft David'];
-    for (const n of p) {
-      const x = v.find(w => w.name.includes(n));
+    var v = speechSynthesis.getVoices();
+    var p = ['Google UK English Female', 'Google UK English Male', 'Samantha', 'Karen', 'Daniel', 'Microsoft Zira', 'Microsoft David'];
+    for (var i = 0; i < p.length; i++) {
+      var x = v.find(function (w) { return w.name.includes(p[i]); });
       if (x) return x;
     }
-    return v.find(w => w.lang.startsWith('en')) || null;
+    return v.find(function (w) { return w.lang.startsWith('en'); }) || null;
   }
 
-  let cachedVoice = null;
+  var cachedVoice = null;
 
   function getNarratorVoice() {
     if (!cachedVoice) cachedVoice = pickNarratorVoice();
@@ -1005,13 +729,13 @@
   }
 
   if ('speechSynthesis' in window) {
-    speechSynthesis.onvoiceschanged = () => {
+    speechSynthesis.onvoiceschanged = function () {
       cachedVoice = pickNarratorVoice();
     };
     speechSynthesis.getVoices();
   }
 
-  let isNarratingSpeech = false;
+  var isNarratingSpeech = false;
 
   function speakNarration(text, onEnd, seq) {
     if (!('speechSynthesis' in window) || !narrationEnabled) {
@@ -1020,12 +744,10 @@
       return;
     }
     if (currentUtterance) {
-      try {
-        speechSynthesis.cancel();
-      } catch (e) {}
+      try { speechSynthesis.cancel(); } catch (e) {}
     }
-    const u = new SpeechSynthesisUtterance(text);
-    const voice = getNarratorVoice();
+    var u = new SpeechSynthesisUtterance(text);
+    var voice = getNarratorVoice();
     if (voice) u.voice = voice;
     u.rate = .88;
     u.pitch = 1.0;
@@ -1033,12 +755,12 @@
     u.lang = 'en-US';
     currentUtterance = u;
     isNarratingSpeech = true;
-    u.onend = () => {
+    u.onend = function () {
       currentUtterance = null;
       isNarratingSpeech = false;
       if (seq === narrationSeqToken && !storyPaused && onEnd) onEnd();
     };
-    u.onerror = () => {
+    u.onerror = function () {
       currentUtterance = null;
       isNarratingSpeech = false;
       if (seq === narrationSeqToken && !storyPaused && onEnd) onEnd();
@@ -1054,9 +776,7 @@
 
   function stopNarration() {
     if ('speechSynthesis' in window) {
-      try {
-        speechSynthesis.cancel();
-      } catch (e) {}
+      try { speechSynthesis.cancel(); } catch (e) {}
       currentUtterance = null;
       isNarratingSpeech = false;
     }
@@ -1064,7 +784,7 @@
   }
 
   function setupNarrationControls() {
-    el.btnNarration.addEventListener('click', () => {
+    el.btnNarration.addEventListener('click', function () {
       narrationEnabled = !narrationEnabled;
       el.btnNarration.setAttribute('aria-pressed', String(narrationEnabled));
       el.btnNarration.classList.toggle('active', narrationEnabled);
@@ -1072,13 +792,13 @@
       if (!narrationEnabled) {
         stopNarration();
       } else if (!storyPaused && !captionsComplete && currentCaptionIndex >= 0 && activeCaptions && activeCaptions[currentCaptionIndex]) {
-        const c = activeCaptions[currentCaptionIndex];
-        const seq = ++narrationSeqToken;
-        speakNarration(c.text, () => {
+        var c = activeCaptions[currentCaptionIndex];
+        var seq = ++narrationSeqToken;
+        speakNarration(c.text, function () {
           if (seq !== narrationSeqToken || storyPaused) return;
           el.captionText.classList.remove('show');
           if (el.deepDetail) el.deepDetail.classList.remove('show');
-          captionTimer = setTimeout(() => {
+          captionTimer = setTimeout(function () {
             captionTimer = null;
             if (storyPaused) return;
             showCaptionAtIndex(currentCaptionIndex + 1);
@@ -1090,15 +810,10 @@
     el.btnNarration.classList.add('active');
   }
 
-  let activeCaptions = [];
-  let currentCaptionIndex = -1;
-  let captionsComplete = false;
-  let captionTimer = null;
-  let captionStartTime = 0;
-  let captionDurationMs = 0;
-  let captionRemainingMs = 0;
-  let currentCaptionSeq = 0;
-  let currentCaptionOnDone = null;
+  var activeCaptions = [];
+  var currentCaptionIndex = -1;
+  var captionsComplete = false;
+  var captionTimer = null;
 
   function clearCaptions() {
     if (captionTimer) {
@@ -1108,10 +823,6 @@
     activeCaptions = [];
     currentCaptionIndex = -1;
     captionsComplete = false;
-    captionStartTime = 0;
-    captionDurationMs = 0;
-    captionRemainingMs = 0;
-    currentCaptionOnDone = null;
     isNarratingSpeech = false;
     if (el.captionText) {
       el.captionText.classList.remove('show');
@@ -1128,111 +839,114 @@
   function playCaptions(captions, onDone, seq) {
     clearCaptions();
     activeCaptions = captions || [];
-    currentCaptionSeq = seq;
-    currentCaptionOnDone = onDone;
+    var currentCaptionSeq = seq;
+    var currentCaptionOnDone = onDone;
     if (!activeCaptions || activeCaptions.length === 0) {
       captionsComplete = true;
       if (onDone) onDone();
       return;
     }
     showCaptionAtIndex(0);
-  }
 
-  function showCaptionAtIndex(idx) {
-    if (currentCaptionSeq !== narrationSeqToken || sceneToken !== parseInt(el.stepCounter.dataset.token || '0')) return;
-    if (idx >= activeCaptions.length) {
-      captionsComplete = true;
-      if (el.deepDetail) el.deepDetail.classList.remove('show');
-      if (currentCaptionOnDone) currentCaptionOnDone();
-      return;
-    }
-    currentCaptionIndex = idx;
-    const c = activeCaptions[idx];
-    el.captionText.textContent = c.text;
-    el.captionText.classList.add('show');
-    if (el.srLive) el.srLive.textContent = c.text;
-    if (c.deep) {
-      el.deepDetailText.textContent = c.deep;
-      el.deepDetail.classList.add('show');
-    } else if (el.deepDetail) {
-      el.deepDetail.classList.remove('show');
-    }
-
-    const dur = (c.duration || 3500) + 350;
-    captionDurationMs = dur;
-    captionStartTime = Date.now();
-    captionRemainingMs = dur;
-
-    if (storyPaused) {
-      return;
-    }
-
-    const useSpeech = narrationEnabled && 'speechSynthesis' in window;
-    if (useSpeech) {
-      speakNarration(c.text, () => {
-        if (currentCaptionSeq !== narrationSeqToken || sceneToken !== parseInt(el.stepCounter.dataset.token || '0')) return;
-        if (storyPaused) return;
-        el.captionText.classList.remove('show');
+    function showCaptionAtIndex(idx) {
+      if (currentCaptionSeq !== narrationSeqToken || sceneToken !== parseInt(el.stepCounter.dataset.token || '0')) return;
+      if (idx >= activeCaptions.length) {
+        captionsComplete = true;
         if (el.deepDetail) el.deepDetail.classList.remove('show');
-        captionTimer = setTimeout(() => {
+        if (currentCaptionOnDone) currentCaptionOnDone();
+        return;
+      }
+      currentCaptionIndex = idx;
+      var c = activeCaptions[idx];
+      el.captionText.textContent = c.text;
+      el.captionText.classList.add('show');
+      if (el.srLive) el.srLive.textContent = c.text;
+      if (c.deep) {
+        el.deepDetailText.textContent = c.deep;
+        el.deepDetail.classList.add('show');
+      } else if (el.deepDetail) {
+        el.deepDetail.classList.remove('show');
+      }
+
+      var dur = (c.duration || 3500) + 350;
+
+      if (storyPaused) return;
+
+      var useSpeech = narrationEnabled && 'speechSynthesis' in window;
+      if (useSpeech) {
+        speakNarration(c.text, function () {
+          if (currentCaptionSeq !== narrationSeqToken || sceneToken !== parseInt(el.stepCounter.dataset.token || '0')) return;
+          if (storyPaused) return;
+          el.captionText.classList.remove('show');
+          if (el.deepDetail) el.deepDetail.classList.remove('show');
+          captionTimer = setTimeout(function () {
+            captionTimer = null;
+            if (storyPaused || currentCaptionSeq !== narrationSeqToken) return;
+            showCaptionAtIndex(idx + 1);
+          }, 400);
+        }, currentCaptionSeq);
+      } else {
+        captionTimer = setTimeout(function () {
           captionTimer = null;
-          if (storyPaused || currentCaptionSeq !== narrationSeqToken) return;
-          showCaptionAtIndex(idx + 1);
-        }, 400);
-      }, currentCaptionSeq);
-    } else {
-      captionTimer = setTimeout(() => {
-        captionTimer = null;
-        if (currentCaptionSeq !== narrationSeqToken || sceneToken !== parseInt(el.stepCounter.dataset.token || '0')) return;
-        if (storyPaused) return;
-        el.captionText.classList.remove('show');
-        if (el.deepDetail) el.deepDetail.classList.remove('show');
-        captionTimer = setTimeout(() => {
-          captionTimer = null;
-          if (storyPaused || currentCaptionSeq !== narrationSeqToken) return;
-          showCaptionAtIndex(idx + 1);
-        }, 300);
-      }, dur);
+          if (currentCaptionSeq !== narrationSeqToken || sceneToken !== parseInt(el.stepCounter.dataset.token || '0')) return;
+          if (storyPaused) return;
+          el.captionText.classList.remove('show');
+          if (el.deepDetail) el.deepDetail.classList.remove('show');
+          captionTimer = setTimeout(function () {
+            captionTimer = null;
+            if (storyPaused || currentCaptionSeq !== narrationSeqToken) return;
+            showCaptionAtIndex(idx + 1);
+          }, 300);
+        }, dur);
+      }
     }
+
+    window._showCaptionAtIndex = showCaptionAtIndex;
   }
 
   function showAccounting(acc) {
     if (!acc) {
       el.accounting.classList.remove('visible');
-      el.accounting.innerHTML = '';
+      el.accounting.textContent = '';
       return;
     }
-    const net = acc.produced - acc.invested;
-    let html = '<div class="acc-section">Pathway total</div>';
-    html += `<div class="acc-item"><span>ATP invested</span><span class="acc-val negative">\u2212${acc.invested}</span></div>`;
-    html += `<div class="acc-item"><span>ATP produced</span><span class="acc-val positive">+${acc.produced}</span></div>`;
-    if (acc.showNet) html += `<div class="acc-item"><span>Net ATP</span><span class="acc-val ${net >= 0 ? 'positive' : 'negative'}">${net >= 0 ? '+' : ''}${net}</span></div>`;
-    html += `<div class="acc-item"><span>NADH</span><span class="acc-val positive">+${acc.nadh}</span></div>`;
-    el.accounting.innerHTML = html;
-    el.accounting.classList.add('visible');
-  }
+    el.accounting.textContent = '';
+    var net = acc.produced - acc.invested;
+    var section = document.createElement('div');
+    section.className = 'acc-section';
+    section.textContent = 'Pathway total';
+    el.accounting.appendChild(section);
 
-  function showReactionAccounting(pr, times) {
-    if (!pr) return;
-    el.accounting.innerHTML = '';
-    let html = '<div class="acc-section">This reaction</div>';
-    let any = false;
-    if (pr.ATP !== 0) {
-      any = true;
-      html += `<div class="acc-item"><span>ATP</span><span class="acc-val ${pr.ATP > 0 ? 'positive' : 'negative'}">${pr.ATP > 0 ? '+' : ''}${pr.ATP}</span></div>`;
-    }
-    if (pr.NADH !== 0) {
-      any = true;
-      html += `<div class="acc-item"><span>NADH</span><span class="acc-val positive">+${pr.NADH}</span></div>`;
-    }
-    if (!any) html += `<div class="acc-item"><span>ATP</span><span class="acc-val" style="color:var(--faint)">0</span></div>`;
-    if (times > 1) html += `<div class="acc-item" style="font-size:9px;color:var(--faint)">x${times} per glucose</div>`;
-    el.accounting.innerHTML = html;
+    var items = [
+      { label: 'ATP invested', value: '\u2212' + acc.invested, cls: 'negative' },
+      { label: 'ATP produced', value: '+' + acc.produced, cls: 'positive' }
+    ];
+    if (acc.showNet) items.push({ label: 'Net ATP', value: (net >= 0 ? '+' : '') + net, cls: net >= 0 ? 'positive' : 'negative' });
+    items.push({ label: 'NADH', value: '+' + acc.nadh, cls: 'positive' });
+
+    items.forEach(function (item) {
+      var div = document.createElement('div');
+      div.className = 'acc-item';
+      var labelSpan = document.createElement('span');
+      labelSpan.textContent = item.label;
+      var valSpan = document.createElement('span');
+      valSpan.className = 'acc-val ' + item.cls;
+      valSpan.textContent = item.value;
+      div.appendChild(labelSpan);
+      div.appendChild(valSpan);
+      el.accounting.appendChild(div);
+    });
+
     el.accounting.classList.add('visible');
   }
 
   function showOverallEquation() {
-    el.overallEquation.innerHTML = 'Glucose + 2 NAD\u207A + 2 ADP + 2 P<sub>i</sub> \u2192 2 Pyruvate + 2 NADH + 2 ATP + 2 H\u207A + 2 H\u2082O<span class="eq-note">Exact proton and water terms vary between biochemical conventions. The key net products are 2 pyruvate, 2 ATP, and 2 NADH per glucose.</span>';
+    el.overallEquation.textContent = '';
+    el.overallEquation.textContent = 'Glucose + 2 NAD\u207A + 2 ADP + 2 P\u1D62 \u2192 2 Pyruvate + 2 NADH + 2 ATP + 2 H\u207A + 2 H\u2082O';
+    var note = document.createElement('span');
+    note.className = 'eq-note';
+    note.textContent = 'Exact proton and water terms vary between biochemical conventions. The key net products are 2 pyruvate, 2 ATP, and 2 NADH per glucose.';
+    el.overallEquation.appendChild(note);
     el.overallEquation.classList.add('visible');
   }
 
@@ -1252,9 +966,9 @@
           viewer.render();
         } catch (e) {}
       } else if (!IS_MOBILE) {
-        const vp = el.viewport;
-        vp.style.transition = `transform ${PREFERS_REDUCED ? .01 : 1.8}s var(--ease-in-out)`;
-        vp.style.transform = `scale(${config.zoom})`;
+        var vp = el.viewport;
+        vp.style.transition = 'transform ' + (PREFERS_REDUCED ? .01 : 1.8) + 's var(--ease-in-out)';
+        vp.style.transform = 'scale(' + config.zoom + ')';
       }
     }
   }
@@ -1271,18 +985,17 @@
   function startCountdown(delay, onFire) {
     cancelCountdown();
     autoAdvanceActive = true;
-    const s = Math.ceil(delay / 1000);
+    var s = Math.ceil(delay / 1000);
     countdownValue = s;
-    countdownTotal = s;
     onCountdownFire = onFire;
-    el.countdownText.textContent = `NEXT SCENE IN ${countdownValue}`;
-    countdownTimer = setInterval(() => {
+    el.countdownText.textContent = 'NEXT SCENE IN ' + countdownValue;
+    countdownTimer = setInterval(function () {
       countdownValue--;
       if (countdownValue <= 0) {
         cancelCountdown();
         onFire();
       } else {
-        el.countdownText.textContent = `NEXT SCENE IN ${countdownValue}`;
+        el.countdownText.textContent = 'NEXT SCENE IN ' + countdownValue;
       }
     }, 1000);
   }
@@ -1295,47 +1008,36 @@
 
   function resumeCountdown() {
     if (countdownTimer || countdownValue <= 0) return;
-    countdownTimer = setInterval(() => {
+    countdownTimer = setInterval(function () {
       countdownValue--;
       if (countdownValue <= 0) {
         cancelCountdown();
         if (onCountdownFire) onCountdownFire();
       } else {
-        el.countdownText.textContent = `NEXT SCENE IN ${countdownValue}`;
+        el.countdownText.textContent = 'NEXT SCENE IN ' + countdownValue;
       }
     }, 1000);
   }
 
   function pauseStory() {
     if (storyPaused) return;
+    if (quizActive) return;
     storyPaused = true;
     pauseStart = Date.now();
     pauseCountdown();
-
     if ('speechSynthesis' in window) {
-      try {
-        speechSynthesis.cancel();
-      } catch (e) {}
+      try { speechSynthesis.cancel(); } catch (e) {}
     }
     currentUtterance = null;
     isNarratingSpeech = false;
-
     if (captionTimer) {
       clearTimeout(captionTimer);
       captionTimer = null;
     }
-    if (captionStartTime > 0 && captionDurationMs > 0) {
-      const elapsed = Date.now() - captionStartTime;
-      captionRemainingMs = Math.max(1000, captionDurationMs - elapsed);
-    }
-
     if (viewer && rotating) {
-      try {
-        viewer.spin(false);
-      } catch (e) {}
+      try { viewer.spin(false); } catch (e) {}
     }
     atmosphereAnimating = false;
-
     el.countdownText.textContent = 'PAUSED';
     el.btnPause.querySelector('span').textContent = 'PLAY';
     el.btnPause.querySelector('path').setAttribute('d', 'M8 5l11 7-11 7z');
@@ -1348,65 +1050,54 @@
   function resumeStory() {
     if (!storyPaused) return;
     storyPaused = false;
-
     if (countdownValue > 0) {
       resumeCountdown();
-      el.countdownText.textContent = `NEXT SCENE IN ${countdownValue}`;
+      el.countdownText.textContent = 'NEXT SCENE IN ' + countdownValue;
     } else {
       el.countdownText.textContent = '';
-
       if (!captionsComplete && currentCaptionIndex >= 0 && activeCaptions && currentCaptionIndex < activeCaptions.length) {
-        const c = activeCaptions[currentCaptionIndex];
+        var c = activeCaptions[currentCaptionIndex];
         el.captionText.textContent = c.text;
         el.captionText.classList.add('show');
         if (c.deep && el.deepDetail) {
           el.deepDetailText.textContent = c.deep;
           el.deepDetail.classList.add('show');
         }
-
-        const useSpeech = narrationEnabled && 'speechSynthesis' in window;
+        var useSpeech = narrationEnabled && 'speechSynthesis' in window;
         if (useSpeech) {
-          const seq = ++narrationSeqToken;
-          currentCaptionSeq = seq;
-          speakNarration(c.text, () => {
+          var seq = ++narrationSeqToken;
+          speakNarration(c.text, function () {
             if (seq !== narrationSeqToken || storyPaused) return;
             el.captionText.classList.remove('show');
             if (el.deepDetail) el.deepDetail.classList.remove('show');
-            captionTimer = setTimeout(() => {
+            captionTimer = setTimeout(function () {
               captionTimer = null;
               if (storyPaused || seq !== narrationSeqToken) return;
-              showCaptionAtIndex(currentCaptionIndex + 1);
+              if (window._showCaptionAtIndex) window._showCaptionAtIndex(currentCaptionIndex + 1);
             }, 400);
           }, seq);
         } else {
-          captionStartTime = Date.now();
-          const dur = captionRemainingMs > 0 ? captionRemainingMs : ((c.duration || 3500) + 350);
-          captionDurationMs = dur;
-          captionTimer = setTimeout(() => {
+          var dur = (c.duration || 3500) + 350;
+          captionTimer = setTimeout(function () {
             captionTimer = null;
             if (storyPaused) return;
             el.captionText.classList.remove('show');
             if (el.deepDetail) el.deepDetail.classList.remove('show');
-            captionTimer = setTimeout(() => {
+            captionTimer = setTimeout(function () {
               captionTimer = null;
               if (storyPaused) return;
-              showCaptionAtIndex(currentCaptionIndex + 1);
+              if (window._showCaptionAtIndex) window._showCaptionAtIndex(currentCaptionIndex + 1);
             }, 300);
           }, dur);
         }
       }
     }
-
     if (viewer && rotating) {
-      try {
-        viewer.spin('y', .25);
-      } catch (e) {}
+      try { viewer.spin('y', .25); } catch (e) {}
     }
-
     if (currentSceneIndex >= 0 && scenes[currentSceneIndex] && scenes[currentSceneIndex].atmosphere) {
       startAtmosphereAnimation();
     }
-
     el.btnPause.querySelector('span').textContent = 'PAUSE';
     el.btnPause.querySelector('path').setAttribute('d', 'M7 5v14M17 5v14');
     el.btnPause.classList.remove('paused-state');
@@ -1420,17 +1111,624 @@
     else pauseStory();
   }
 
-  function mobileReactionText(reaction) {
-    return reaction
-      .replaceAll('Glucose-6-phosphate', 'G6P')
-      .replaceAll('Fructose-6-phosphate', 'F6P')
-      .replaceAll('Fructose-1,6-bisphosphate', 'FBP')
-      .replaceAll('Glyceraldehyde-3-phosphate', 'G3P')
-      .replaceAll('1,3-bisphosphoglycerate', '1,3-BPG')
-      .replaceAll('3-Phosphoglycerate', '3-PG')
-      .replaceAll('2-Phosphoglycerate', '2-PG')
-      .replaceAll('Phosphoenolpyruvate', 'PEP')
-      .replaceAll('NAD⁺', 'NAD+');
+  function showQuiz(questionId) {
+    var q = QUESTIONS.find(function (x) { return x.id === questionId; });
+    if (!q) return Promise.resolve();
+    quizActive = true;
+    cancelCountdown();
+    clearCaptions();
+    stopNarration();
+    hideUI(['sceneControls']);
+
+    el.quizQuestionText.textContent = q.question;
+    el.quizOptions.textContent = '';
+    el.quizContainer.classList.remove('submitted');
+    el.quizFeedback.classList.remove('show');
+    el.quizFeedbackText.textContent = '';
+    el.quizContinue.classList.remove('visible');
+    var oldContinue = el.quizFeedback.querySelector('.quiz-continue-btn');
+    if (oldContinue) oldContinue.remove();
+
+    el.quizOptions.setAttribute('role', 'radiogroup');
+    el.quizOptions.setAttribute('aria-label', q.question);
+
+    q.options.forEach(function (opt, i) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'quiz-option';
+      btn.setAttribute('role', 'radio');
+      btn.setAttribute('aria-checked', 'false');
+      btn.setAttribute('data-index', String(i));
+      btn.setAttribute('tabindex', i === 0 ? '0' : '-1');
+
+      var letterSpan = document.createElement('span');
+      letterSpan.className = 'quiz-option-letter';
+      letterSpan.textContent = String.fromCharCode(65 + i);
+
+      var textSpan = document.createElement('span');
+      textSpan.className = 'quiz-option-text';
+      textSpan.textContent = opt;
+
+      btn.appendChild(letterSpan);
+      btn.appendChild(textSpan);
+
+      btn.addEventListener('click', function () {
+        if (quizLocked[q.id]) return;
+        var idx = parseInt(btn.getAttribute('data-index'));
+        quizAnswers[q.id] = idx;
+        var allOptions = el.quizOptions.querySelectorAll('.quiz-option');
+        allOptions.forEach(function (o, j) {
+          o.setAttribute('aria-checked', 'false');
+          o.setAttribute('tabindex', j === idx ? '0' : '-1');
+        });
+        btn.setAttribute('aria-checked', 'true');
+        btn.setAttribute('tabindex', '0');
+        btn.focus();
+        el.quizContinue.classList.add('visible');
+        el.srLive.textContent = 'Selected: ' + opt;
+      });
+
+      btn.addEventListener('keydown', function (e) {
+        if (quizLocked[q.id]) return;
+        var allOptions = el.quizOptions.querySelectorAll('.quiz-option');
+        var currentIdx = parseInt(btn.getAttribute('data-index'));
+        var nextIdx = -1;
+
+        if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          nextIdx = (currentIdx + 1) % allOptions.length;
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          nextIdx = (currentIdx - 1 + allOptions.length) % allOptions.length;
+        } else if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          btn.click();
+          return;
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          nextIdx = 0;
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          nextIdx = allOptions.length - 1;
+        }
+
+        if (nextIdx >= 0) {
+          allOptions.forEach(function (o) { o.setAttribute('tabindex', '-1'); });
+          allOptions[nextIdx].setAttribute('tabindex', '0');
+          allOptions[nextIdx].focus();
+        }
+      });
+
+      el.quizOptions.appendChild(btn);
+    });
+
+    var totalQuestions = QUESTIONS.length;
+    var questionNumber = QUESTIONS.indexOf(q) + 1;
+    el.quizProgressText.textContent = 'QUESTION ' + questionNumber + ' OF ' + totalQuestions;
+    el.quizOverlay.classList.add('visible');
+    el.quizOverlay.focus();
+    el.srLive.textContent = 'Quiz checkpoint: ' + q.question;
+
+    return new Promise(function (resolve) {
+      el.quizContinue.onclick = function () {
+        if (quizAnswers[q.id] === undefined) return;
+        quizLocked[q.id] = true;
+        var isCorrect = quizAnswers[q.id] === q.correctAnswer;
+        if (isCorrect) quizScore++;
+        quizCompleted++;
+
+        var allOptions = el.quizOptions.querySelectorAll('.quiz-option');
+        allOptions.forEach(function (o, i) {
+          o.style.pointerEvents = 'none';
+          if (i === q.correctAnswer) o.classList.add('correct');
+          if (i === quizAnswers[q.id] && !isCorrect) o.classList.add('incorrect');
+        });
+
+        el.quizFeedbackText.textContent = (isCorrect ? 'Correct. ' : 'Not quite. ') + q.explanation;
+        el.quizContainer.classList.add('submitted');
+        el.quizFeedback.classList.add('show');
+        el.quizContinue.classList.remove('visible');
+        el.srLive.textContent = (isCorrect ? 'Correct. ' : 'Incorrect. ') + q.explanation;
+
+        var continueBtn = document.createElement('button');
+        continueBtn.type = 'button';
+        continueBtn.className = 'quiz-continue-btn';
+        continueBtn.classList.add('visible');
+        continueBtn.textContent = 'CONTINUE STORY';
+        continueBtn.addEventListener('click', function () {
+          el.quizOverlay.classList.remove('visible');
+          quizActive = false;
+          resolve();
+        });
+        el.quizFeedback.appendChild(continueBtn);
+        continueBtn.focus();
+      };
+    });
+  }
+
+  function showResults() {
+    quizFinished = true;
+    hideTabWarning();
+    var total = QUESTIONS.length;
+    var pct = total > 0 ? Math.round((quizScore / total) * 100) : 0;
+    el.resultsScore.textContent = quizScore + ' / ' + total;
+    el.resultsPercentage.textContent = pct + '%';
+    el.resultsReview.textContent = '';
+
+    QUESTIONS.forEach(function (q, i) {
+      var div = document.createElement('div');
+      div.className = 'results-question';
+
+      var qText = document.createElement('div');
+      qText.className = 'results-q-text';
+      qText.textContent = (i + 1) + '. ' + q.question;
+
+      var answerRow = document.createElement('div');
+      answerRow.className = 'results-q-answers';
+
+      var userAnswer = quizAnswers[q.id];
+      var userLabel = userAnswer !== undefined ? String.fromCharCode(65 + userAnswer) + '. ' + q.options[userAnswer] : 'Not answered';
+      var correctLabel = String.fromCharCode(65 + q.correctAnswer) + '. ' + q.options[q.correctAnswer];
+
+      var wasCorrect = userAnswer === q.correctAnswer;
+
+      var userDiv = document.createElement('div');
+      userDiv.className = 'results-q-user ' + (wasCorrect ? 'correct' : 'incorrect');
+      var yourLabel = document.createElement('span');
+      yourLabel.className = 'results-q-label';
+      yourLabel.textContent = 'Your answer: ';
+      var yourValue = document.createElement('span');
+      yourValue.textContent = userLabel;
+      userDiv.appendChild(yourLabel);
+      userDiv.appendChild(yourValue);
+
+      if (!wasCorrect) {
+        var correctDiv = document.createElement('div');
+        correctDiv.className = 'results-q-correct';
+        var correctLabelSpan = document.createElement('span');
+        correctLabelSpan.className = 'results-q-label';
+        correctLabelSpan.textContent = 'Correct answer: ';
+        var correctValueSpan = document.createElement('span');
+        correctValueSpan.textContent = correctLabel;
+        correctDiv.appendChild(correctLabelSpan);
+        correctDiv.appendChild(correctValueSpan);
+        answerRow.appendChild(userDiv);
+        answerRow.appendChild(correctDiv);
+      } else {
+        answerRow.appendChild(userDiv);
+      }
+
+      var explDiv = document.createElement('div');
+      explDiv.className = 'results-q-explanation';
+      explDiv.textContent = q.explanation;
+
+      div.appendChild(qText);
+      div.appendChild(answerRow);
+      div.appendChild(explDiv);
+      el.resultsReview.appendChild(div);
+    });
+
+    el.resultsOverlay.classList.add('visible');
+    el.resultsOverlay.focus();
+    el.srLive.textContent = 'Story complete. You scored ' + quizScore + ' out of ' + total + ', ' + pct + ' percent.';
+  }
+
+  function sanitizeInput(str) {
+    return (str || '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '').trim().substring(0, 200);
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function formatDuration(ms) {
+    var seconds = Math.floor(ms / 1000);
+    if (seconds < 60) return seconds + ' second' + (seconds !== 1 ? 's' : '');
+    var minutes = Math.floor(seconds / 60);
+    var remainSec = seconds % 60;
+    return minutes + ' minute' + (minutes !== 1 ? 's' : '') + (remainSec > 0 ? ' ' + remainSec + ' second' + (remainSec !== 1 ? 's' : '') : '');
+  }
+
+  function createTabWarningOverlay() {
+    var overlay = document.createElement('div');
+    overlay.id = 'tabWarningOverlay';
+    overlay.className = 'tab-overlay';
+    overlay.setAttribute('role', 'alert');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML = '<div class="tab-overlay-content">' +
+      '<div class="tab-overlay-icon" aria-hidden="true">!</div>' +
+      '<div class="tab-overlay-title">TAB CHANGE DETECTED</div>' +
+      '<div class="tab-overlay-text">You have left the quiz. Tab changes are being monitored and logged.</div>' +
+      '<div class="tab-overlay-subtext" id="tabAwayTimer"></div>' +
+      '<div class="tab-overlay-warning">Returning after more than 5 minutes will restart the quiz.</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function createReasonModal() {
+    var overlay = document.createElement('div');
+    overlay.id = 'reasonModal';
+    overlay.className = 'tab-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Explain your absence');
+    overlay.innerHTML = '<div class="tab-overlay-content">' +
+      '<div class="tab-overlay-title">YOU WERE AWAY</div>' +
+      '<div class="tab-overlay-text" id="reasonAwayDuration"></div>' +
+      '<div class="tab-overlay-subtext">Please explain or justify why you were away:</div>' +
+      '<textarea id="reasonInput" class="reason-input" rows="3" maxlength="500" placeholder="Enter your reason here..." aria-label="Reason for absence"></textarea>' +
+      '<div class="reason-error" id="reasonError" role="alert"></div>' +
+      '<div class="tab-overlay-actions">' +
+      '<button type="button" id="reasonSubmit" class="tab-overlay-btn">SUBMIT REASON</button>' +
+      '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function createStartWarning() {
+    var overlay = document.createElement('div');
+    overlay.id = 'startWarningOverlay';
+    overlay.className = 'tab-overlay';
+    overlay.setAttribute('role', 'alertdialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Quiz integrity notice');
+    overlay.innerHTML = '<div class="tab-overlay-content">' +
+      '<div class="tab-overlay-icon" aria-hidden="true">!</div>' +
+      '<div class="tab-overlay-title">QUIZ INTEGRITY NOTICE</div>' +
+      '<div class="tab-overlay-text">This quiz monitors tab and window focus to ensure academic integrity.</div>' +
+      '<div class="tab-overlay-rules">' +
+      '<div class="tab-overlay-rule">Tab changes are logged with timestamps and duration</div>' +
+      '<div class="tab-overlay-rule">Being away for more than 5 minutes will auto-restart the quiz</div>' +
+      '<div class="tab-overlay-rule">You may be asked to explain any absence</div>' +
+      '<div class="tab-overlay-rule">All activity is included in the results sent to your teacher</div>' +
+      '</div>' +
+      '<div class="tab-overlay-actions">' +
+      '<button type="button" id="startWarningAcknowledge" class="tab-overlay-btn">I UNDERSTAND</button>' +
+      '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  var tabWarningOverlay = null;
+  var tabAwayTimerInterval = null;
+
+  function showTabWarning() {
+    if (!tabWarningOverlay) tabWarningOverlay = createTabWarningOverlay();
+    tabWarningOverlay.classList.add('visible');
+    var timerEl = document.getElementById('tabAwayTimer');
+    if (timerEl) timerEl.textContent = '';
+    if (tabAwayTimerInterval) clearInterval(tabAwayTimerInterval);
+    tabAwayTimerInterval = setInterval(function () {
+      if (tabLeftAt > 0 && timerEl) {
+        var elapsed = Date.now() - tabLeftAt;
+        timerEl.textContent = 'Away for: ' + formatDuration(elapsed);
+        if (elapsed >= TAB_AUTO_RESTART_MS) {
+          clearInterval(tabAwayTimerInterval);
+          tabAwayTimerInterval = null;
+          handleAutoRestart();
+        }
+      }
+    }, 1000);
+  }
+
+  function hideTabWarning() {
+    if (tabWarningOverlay) tabWarningOverlay.classList.remove('visible');
+    if (tabAwayTimerInterval) {
+      clearInterval(tabAwayTimerInterval);
+      tabAwayTimerInterval = null;
+    }
+  }
+
+  var reasonModal = null;
+  var reasonSubmitHandler = null;
+
+  function showReasonModal(duration) {
+    return new Promise(function (resolve) {
+      if (!reasonModal) reasonModal = createReasonModal();
+      var durationEl = document.getElementById('reasonAwayDuration');
+      var inputEl = document.getElementById('reasonInput');
+      var errorEl = document.getElementById('reasonError');
+      var submitEl = document.getElementById('reasonSubmit');
+      if (durationEl) durationEl.textContent = 'You were away for ' + formatDuration(duration) + '.';
+      if (inputEl) inputEl.value = '';
+      if (errorEl) errorEl.textContent = '';
+      reasonModal.classList.add('visible');
+      if (inputEl) inputEl.focus();
+      if (reasonSubmitHandler) submitEl.removeEventListener('click', reasonSubmitHandler);
+      reasonSubmitHandler = function () {
+        var reason = (inputEl ? inputEl.value : '').trim();
+        if (!reason) {
+          if (errorEl) errorEl.textContent = 'Please enter a reason before submitting.';
+          if (inputEl) inputEl.focus();
+          return;
+        }
+        reasonModal.classList.remove('visible');
+        resolve(reason);
+      };
+      submitEl.addEventListener('click', reasonSubmitHandler);
+    });
+  }
+
+  function handleAutoRestart() {
+    cheatingDetected = true;
+    hideTabWarning();
+    tabChangeLog.push({
+      type: 'auto-restart',
+      timestamp: new Date().toISOString(),
+      duration: TAB_AUTO_RESTART_MS,
+      message: 'Quiz auto-restarted due to absence exceeding 5 minutes'
+    });
+    cancelCountdown();
+    clearCaptions();
+    stopNarration();
+    quizAnswers = {};
+    quizLocked = {};
+    quizScore = 0;
+    quizCompleted = 0;
+    quizActive = false;
+    transitioning = false;
+    autoAdvanceActive = true;
+    storyStarted = false;
+    if (storyPaused) {
+      storyPaused = false;
+      el.btnPause.querySelector('span').textContent = 'PAUSE';
+      el.btnPause.querySelector('path').setAttribute('d', 'M7 5v14M17 5v14');
+      el.btnPause.classList.remove('paused-state');
+      el.btnPause.setAttribute('aria-pressed', 'false');
+      el.btnPause.setAttribute('aria-label', 'Pause story (P)');
+    }
+    el.resultsOverlay.classList.remove('visible');
+    el.emailOverlay.classList.remove('visible');
+    el.quizOverlay.classList.remove('visible');
+    if (currentMolKey) clearMolecule();
+    el.viewport.style.opacity = '1';
+    el.viewport.style.transform = '';
+    tabLeftAt = 0;
+    showAutoRestartMessage();
+  }
+
+  function showAutoRestartMessage() {
+    var overlay = document.createElement('div');
+    overlay.id = 'autoRestartOverlay';
+    overlay.className = 'tab-overlay';
+    overlay.setAttribute('role', 'alertdialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML = '<div class="tab-overlay-content">' +
+      '<div class="tab-overlay-icon" aria-hidden="true">!</div>' +
+      '<div class="tab-overlay-title">QUIZ RESTARTED</div>' +
+      '<div class="tab-overlay-text">You were away for more than 5 minutes. The quiz has been restarted from the beginning.</div>' +
+      '<div class="tab-overlay-subtext">This incident has been logged.</div>' +
+      '<div class="tab-overlay-actions">' +
+      '<button type="button" id="autoRestartAcknowledge" class="tab-overlay-btn">RESTART QUIZ</button>' +
+      '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    overlay.classList.add('visible');
+    document.getElementById('autoRestartAcknowledge').addEventListener('click', function () {
+      overlay.remove();
+      transitionToScene(0, true);
+    });
+  }
+
+  var visibilityChangeCount = 0;
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      if (!storyStarted || quizActive || quizFinished || el.resultsOverlay.classList.contains('visible') || el.emailOverlay.classList.contains('visible')) return;
+      tabLeftAt = Date.now();
+      showTabWarning();
+      if (el.srLive) el.srLive.textContent = 'You have left the quiz tab. Tab changes are being monitored.';
+    } else {
+      var leftAt = tabLeftAt;
+      tabLeftAt = 0;
+      hideTabWarning();
+      if (!storyStarted || quizActive || quizFinished || el.resultsOverlay.classList.contains('visible') || el.emailOverlay.classList.contains('visible')) return;
+      if (leftAt > 0) {
+        awayDuration = Date.now() - leftAt;
+        visibilityChangeCount++;
+        var logEntry = {
+          type: 'tab-return',
+          timestamp: new Date().toISOString(),
+          duration: awayDuration,
+          index: visibilityChangeCount
+        };
+        if (awayDuration >= TAB_AUTO_RESTART_MS) {
+          logEntry.type = 'auto-restart-trigger';
+          tabChangeLog.push(logEntry);
+          handleAutoRestart();
+          return;
+        }
+        if (awayDuration >= TAB_WARNING_THRESHOLD_MS) {
+          showReasonModal(awayDuration).then(function (reason) {
+            awayReason = reason;
+            logEntry.reason = reason;
+            tabChangeLog.push(logEntry);
+            if (el.srLive) el.srLive.textContent = 'Reason recorded. You may continue the quiz.';
+          });
+        } else {
+          logEntry.reason = 'Brief absence (under 5 seconds)';
+          tabChangeLog.push(logEntry);
+        }
+      }
+    }
+  });
+
+  var lastFocusedElement = null;
+
+  function openEmailResults() {
+    hideTabWarning();
+    lastFocusedElement = document.activeElement;
+    el.emailOverlay.classList.add('visible');
+    el.emailError.textContent = '';
+    el.emailTeacherName.value = '';
+    el.emailTeacherEmail.value = '';
+    el.emailStudentName.value = '';
+    el.emailSend.disabled = false;
+    el.emailSend.textContent = 'SEND RESULTS';
+    setTimeout(function () { el.emailTeacherName.focus(); }, 100);
+  }
+
+  function closeEmailResults() {
+    el.emailOverlay.classList.remove('visible');
+    if (lastFocusedElement) lastFocusedElement.focus();
+  }
+
+  var RESULT_API = '/api/create-result';
+
+  function readApiResponse(res, fallbackMessage) {
+    return res.text().then(function (text) {
+      var data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (e) {
+        throw new Error('The quiz server returned an HTML page instead of JSON. Please open the quiz through the deployed worker URL, not a static file server.');
+      }
+      if (!res.ok) throw new Error(data.error || fallbackMessage);
+      return data;
+    });
+  }
+
+  function createVerifiedResult(studentName) {
+    var answers = QUESTIONS.map(function (q, index) {
+      return {
+        questionIndex: index,
+        answerIndex: quizAnswers[q.id]
+      };
+    });
+    return fetch(RESULT_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentName: studentName, answers: answers })
+    }).then(function (res) {
+      return readApiResponse(res, 'Could not create verified results.');
+    });
+  }
+
+  function createResultDownload() {
+    var studentName = sanitizeInput(el.downloadStudentName.value);
+    el.downloadError.textContent = '';
+    if (!studentName) {
+      el.downloadError.textContent = 'Please enter your name.';
+      el.downloadStudentName.focus();
+      return;
+    }
+
+    el.downloadSubmit.disabled = true;
+    el.downloadSubmit.textContent = 'PREPARING...';
+    createVerifiedResult(studentName).then(function (data) {
+      var answerRows = QUESTIONS.map(function (q, index) {
+        var selected = quizAnswers[q.id];
+        var userLabel = selected !== undefined ? String.fromCharCode(65 + selected) + '. ' + q.options[selected] : 'Not answered';
+        var correct = selected === q.correctAnswer;
+        return '<tr><td>' + (index + 1) + '</td><td>' + escapeHtml(q.question) + '</td><td>' + escapeHtml(userLabel) + '</td><td class="' + (correct ? 'correct' : 'incorrect') + '">' + (correct ? 'Correct' : 'Incorrect') + '</td></tr>';
+      }).join('');
+      var documentText = '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Glycolysis Results - ' + escapeHtml(studentName) + '</title><style>body{font-family:Arial,sans-serif;max-width:900px;margin:40px auto;padding:0 20px;color:#17202a}h1{margin-bottom:4px}p{line-height:1.5}.score{font-size:32px;font-weight:700;margin:24px 0}table{border-collapse:collapse;width:100%;margin-top:24px}th,td{border:1px solid #c9d0d6;padding:10px;text-align:left;vertical-align:top}th{background:#eef2f4}.correct{color:#177245;font-weight:700}.incorrect{color:#a33a2e;font-weight:700}.verify{margin-top:28px;padding:16px;background:#f1f5f5;border-left:4px solid #7dce3b}.code{font:700 20px monospace;letter-spacing:1px}</style></head><body><h1>Glycolysis Quiz Results</h1><p>Student: ' + escapeHtml(studentName) + '</p><div class="score">Score: ' + data.score + ' / ' + data.total + ' (' + Math.round((data.score / data.total) * 100) + '%)</div><p>Completed: ' + escapeHtml(new Date(data.completedAt).toLocaleString()) + '</p><table><thead><tr><th>#</th><th>Question</th><th>Answer</th><th>Result</th></tr></thead><tbody>' + answerRows + '</tbody></table><div class="verify"><strong>Verification code</strong><div class="code">' + escapeHtml(data.verificationCode) + '</div><p>Verify this result online: <a href="' + escapeHtml(data.verifyUrl) + '">' + escapeHtml(data.verifyUrl) + '</a></p><p>The online verification record is authoritative. Changes to this file will not change the server-verified result.</p></div></body></html>';
+      var blob = new Blob([documentText], { type: 'text/html;charset=utf-8' });
+      var link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = data.resultId.toLowerCase() + '-results.html';
+      document.body.appendChild(link);
+      link.click();
+      URL.revokeObjectURL(link.href);
+      link.remove();
+      el.downloadSubmit.disabled = false;
+      el.downloadSubmit.textContent = 'DOWNLOAD FILE';
+      el.downloadOverlay.classList.remove('visible');
+      if (lastFocusedElement) lastFocusedElement.focus();
+    }).catch(function (err) {
+      el.downloadError.textContent = err.message || 'Could not create verified results.';
+      el.downloadSubmit.disabled = false;
+      el.downloadSubmit.textContent = 'DOWNLOAD FILE';
+    });
+  }
+
+  function openDownloadResults() {
+    hideTabWarning();
+    lastFocusedElement = document.activeElement;
+    el.downloadOverlay.classList.add('visible');
+    el.downloadError.textContent = '';
+    el.downloadStudentName.value = '';
+    el.downloadSubmit.disabled = false;
+    el.downloadSubmit.textContent = 'DOWNLOAD FILE';
+    setTimeout(function () { el.downloadStudentName.focus(); }, 100);
+  }
+
+  function closeDownloadResults() {
+    el.downloadOverlay.classList.remove('visible');
+    if (lastFocusedElement) lastFocusedElement.focus();
+  }
+
+  function sendEmailResults() {
+    var teacherName = sanitizeInput(el.emailTeacherName.value);
+    var teacherEmail = sanitizeInput(el.emailTeacherEmail.value);
+    var studentName = sanitizeInput(el.emailStudentName.value);
+
+    el.emailError.textContent = '';
+
+    if (!teacherName) {
+      el.emailError.textContent = 'Please enter your teacher\'s name.';
+      el.emailTeacherName.focus();
+      return;
+    }
+    if (!teacherEmail) {
+      el.emailError.textContent = 'Please enter your teacher\'s email address.';
+      el.emailTeacherEmail.focus();
+      return;
+    }
+    if (!isValidEmail(teacherEmail)) {
+      el.emailError.textContent = 'Please enter a valid email address.';
+      el.emailTeacherEmail.focus();
+      return;
+    }
+    if (!studentName) {
+      el.emailError.textContent = 'Please enter your name.';
+      el.emailStudentName.focus();
+      return;
+    }
+
+    el.emailSend.disabled = true;
+    el.emailSend.textContent = 'OPENING EMAIL...';
+
+    createVerifiedResult(studentName)
+      .then(function (data) {
+        var answerLines = QUESTIONS.map(function (q, index) {
+          var selected = quizAnswers[q.id];
+          var answerText = selected !== undefined ? q.options[selected] : 'Not answered';
+          return (index + 1) + '. ' + answerText + (selected === q.correctAnswer ? ' (Correct)' : ' (Incorrect)');
+        }).join('\n');
+        var body = 'Hello ' + teacherName + ',\n\n' +
+          studentName + ' completed the Glycolysis quiz.\n\n' +
+          'Score: ' + data.score + ' / ' + data.total + ' (' + Math.round((data.score / data.total) * 100) + '%)\n' +
+          'Completed: ' + new Date(data.completedAt).toLocaleString() + '\n' +
+          'Verification code: ' + data.verificationCode + '\n' +
+          'Verify this result: ' + data.verifyUrl + '\n\n' +
+          'Answer summary:\n' + answerLines + '\n\n' +
+          'The verification link is the authoritative record. The student may attach the downloaded results file separately.\n\n' +
+          'Regards,\n' + studentName;
+        window.location.href = 'mailto:' + encodeURIComponent(teacherEmail) +
+          '?subject=' + encodeURIComponent('Glycolysis Quiz Results - ' + studentName) +
+          '&body=' + encodeURIComponent(body);
+        el.emailError.textContent = '';
+        el.emailSend.textContent = 'EMAIL APP OPENED';
+        el.emailSend.disabled = false;
+        setTimeout(closeEmailResults, 1200);
+      })
+      .catch(function (err) {
+        var msg = err.message || 'Could not send email.';
+        if (msg.indexOf('Failed to fetch') !== -1 || msg.indexOf('NetworkError') !== -1) {
+          msg = 'Network error. Please check your connection and try again.';
+        }
+        el.emailError.textContent = msg;
+        el.emailSend.disabled = false;
+        el.emailSend.textContent = 'SEND RESULTS';
+      });
   }
 
   async function transitionToScene(index, immediate) {
@@ -1439,15 +1737,16 @@
     if (index === currentSceneIndex && !immediate) return;
     if (storyPaused) resumeStory();
     transitioning = true;
-    const token = ++sceneToken;
+    var token = ++sceneToken;
     el.stepCounter.dataset.token = String(token);
-    const scene = scenes[index];
-    const prevScene = currentSceneIndex >= 0 ? scenes[currentSceneIndex] : null;
+    var scene = scenes[index];
+    var prevScene = currentSceneIndex >= 0 ? scenes[currentSceneIndex] : null;
     cancelCountdown();
     clearCaptions();
     stopNarration();
     hideUI(['sceneControls']);
-    const needsFade = scene.phase !== (prevScene && prevScene.phase) || scene.id === 'finale' || (prevScene && prevScene.id === 'finale');
+
+    var needsFade = scene.phase !== (prevScene && prevScene.phase) || scene.id === 'finale' || (prevScene && prevScene.id === 'finale');
     if (needsFade && !immediate && !PREFERS_REDUCED) {
       el.fadeOverlay.classList.add('active');
       await wait(600);
@@ -1457,21 +1756,16 @@
       return;
     }
     currentSceneIndex = index;
-    if (scene.reactionNumber) {
-      el.stepCounter.textContent = `REACTION ${String(scene.reactionNumber).padStart(2, '0')} / 10`;
-    } else {
-      el.stepCounter.textContent = 'GLYCOLYSIS';
-    }
+    el.stepCounter.textContent = 'GLYCOLYSIS';
     el.stepCounter.classList.add('visible');
-    const phaseLabels = {
+    var phaseLabels = {
       intro: 'INTRODUCTION',
-      investment: 'ENERGY INVESTMENT \u00B7 REACTIONS 1\u20135',
-      payoff: 'ENERGY PAYOFF \u00B7 REACTIONS 6\u201310',
+      investment: 'ENERGY INVESTMENT',
+      payoff: 'ENERGY PAYOFF',
       accounting: 'ACCOUNTING',
-      downstream: 'DOWNSTREAM',
       finale: 'FINALE'
     };
-    const label = phaseLabels[scene.phase] || '';
+    var label = phaseLabels[scene.phase] || '';
     el.sceneLabel.textContent = label;
     if (label) el.sceneLabel.classList.add('visible');
     else el.sceneLabel.classList.remove('visible');
@@ -1486,18 +1780,15 @@
     }
     if (scene.enzyme) {
       el.enzymeName.textContent = scene.enzyme;
-      el.enzymeReaction.textContent = IS_MOBILE && scene.reaction
-        ? mobileReactionText(scene.reaction)
-        : scene.reaction || '';
+      el.enzymeReaction.textContent = scene.reaction || '';
       el.enzymeLabel.classList.add('visible');
     } else {
       el.enzymeLabel.classList.remove('visible');
     }
     if (scene.accounting) showAccounting(scene.accounting);
-    else if (scene.perReaction) showReactionAccounting(scene.perReaction, scene.timesPerGlucose);
     else {
       el.accounting.classList.remove('visible');
-      el.accounting.innerHTML = '';
+      el.accounting.textContent = '';
     }
     if (scene.showEquation) showOverallEquation();
     else {
@@ -1557,22 +1848,40 @@
       transitioning = false;
       return;
     }
-    const seq = ++narrationSeqToken;
+    var seq = ++narrationSeqToken;
     el.btnStay.classList.remove('stay-active');
     autoAdvanceActive = true;
-    playCaptions(scene.captions, () => {
+    playCaptions(scene.captions, function () {
       if (seq !== narrationSeqToken || token !== sceneToken) return;
+
+      if (scene.quiz && !quizLocked[scene.quiz]) {
+        showUI(['sceneControls']);
+        showQuiz(scene.quiz).then(function () {
+          if (token !== sceneToken) return;
+          showUI(['sceneControls']);
+          if (!autoAdvanceActive) return;
+          var delay = scene.autoAdvanceDelay || 5000;
+          startCountdown(delay, function () {
+            if (token !== sceneToken) return;
+            if (currentSceneIndex < scenes.length - 1) transitionToScene(currentSceneIndex + 1);
+          });
+        });
+        return;
+      }
+
+      if (scene.id === 'finale') {
+        showUI(['sceneControls']);
+        showResults();
+        return;
+      }
+
       showUI(['sceneControls']);
       if (!autoAdvanceActive) return;
-      const delay = scene.autoAdvanceDelay || 5000;
-      startCountdown(delay, () => {
+      var delay = scene.autoAdvanceDelay || 5000;
+      startCountdown(delay, function () {
         if (token !== sceneToken) return;
         if (currentSceneIndex < scenes.length - 1) transitionToScene(currentSceneIndex + 1);
       });
-      if (storyPaused) {
-        el.countdownText.textContent = 'PAUSED';
-        pauseCountdown();
-      }
     }, seq);
     transitioning = false;
   }
@@ -1581,41 +1890,70 @@
     el.btnRotate.setAttribute('aria-pressed', String(rotating));
     el.btnRotate.classList.toggle('active', rotating);
 
-    el.btnPrev.addEventListener('click', () => {
+    el.btnPrev.addEventListener('click', function () {
       if (currentSceneIndex > 0) transitionToScene(currentSceneIndex - 1);
     });
-    el.btnNext.addEventListener('click', () => {
+    el.btnNext.addEventListener('click', function () {
       cancelCountdown();
       if (currentSceneIndex < scenes.length - 1) transitionToScene(currentSceneIndex + 1);
     });
-    el.btnStay.addEventListener('click', () => {
+    el.btnStay.addEventListener('click', function () {
       if (autoAdvanceActive) {
         cancelCountdown();
         autoAdvanceActive = false;
         el.btnStay.classList.add('stay-active');
         el.countdownText.textContent = 'AUTO ADVANCE OFF';
-        setTimeout(() => {
+        setTimeout(function () {
           if (!autoAdvanceActive && !storyPaused && countdownValue <= 0) el.countdownText.textContent = '';
         }, 2000);
       } else {
         autoAdvanceActive = true;
         el.btnStay.classList.remove('stay-active');
         if (captionsComplete && currentSceneIndex >= 0) {
-          const delay = scenes[currentSceneIndex].autoAdvanceDelay || 5000;
-          startCountdown(delay, () => {
+          var d = scenes[currentSceneIndex].autoAdvanceDelay || 5000;
+          startCountdown(d, function () {
             if (currentSceneIndex < scenes.length - 1) transitionToScene(currentSceneIndex + 1);
           });
         }
       }
     });
     el.btnPause.addEventListener('click', togglePause);
-    el.btnRestart.addEventListener('click', () => {
+    el.btnRestart.addEventListener('click', function () {
       cancelCountdown();
       clearCaptions();
       stopNarration();
+      quizAnswers = {};
+      quizLocked = {};
+      quizScore = 0;
+      quizCompleted = 0;
+      quizActive = false;
+      quizFinished = false;
+      transitioning = false;
+      autoAdvanceActive = true;
+      tabChangeLog = [];
+      tabLeftAt = 0;
+      awayDuration = 0;
+      awayReason = '';
+      cheatingDetected = false;
+      visibilityChangeCount = 0;
+      storyStarted = false;
+      if (storyPaused) {
+        storyPaused = false;
+        el.btnPause.querySelector('span').textContent = 'PAUSE';
+        el.btnPause.querySelector('path').setAttribute('d', 'M7 5v14M17 5v14');
+        el.btnPause.classList.remove('paused-state');
+        el.btnPause.setAttribute('aria-pressed', 'false');
+        el.btnPause.setAttribute('aria-label', 'Pause story (P)');
+      }
+      el.resultsOverlay.classList.remove('visible');
+      el.emailOverlay.classList.remove('visible');
+      el.quizOverlay.classList.remove('visible');
+      if (currentMolKey) clearMolecule();
+      el.viewport.style.opacity = '1';
+      el.viewport.style.transform = '';
       transitionToScene(0, true);
     });
-    el.btnHome.addEventListener('click', () => {
+    el.btnHome.addEventListener('click', function () {
       window.location.href = '../index.html';
     });
     el.btnRotate.addEventListener('click', function () {
@@ -1634,33 +1972,38 @@
       this.setAttribute('aria-pressed', String(hydrogens));
       if (currentMolKey) {
         applyStyle();
-        try {
-          viewer.render();
-        } catch (e) {}
+        try { viewer.render(); } catch (e) {}
       }
     });
-    el.btnReset.addEventListener('click', () => {
+    el.btnReset.addEventListener('click', function () {
       if (!viewer || !currentMolKey) return;
       try {
         viewer.spin(false);
         viewer.zoomTo();
         viewer.zoom(.92);
         viewer.render();
-        if (rotating) setTimeout(() => {
-          try {
-            viewer.spin('y', .25);
-          } catch (e) {}
+        if (rotating) setTimeout(function () {
+          try { viewer.spin('y', .25); } catch (e) {}
         }, 100);
       } catch (e) {}
       el.srLive.textContent = 'Camera view reset';
     });
-    el.mobileToolsToggle.addEventListener('click', () => {
-      const isOpen = document.body.classList.toggle('mobile-tools-open');
+    el.mobileToolsToggle.addEventListener('click', function () {
+      var isOpen = document.body.classList.toggle('mobile-tools-open');
       el.mobileToolsToggle.setAttribute('aria-expanded', String(isOpen));
       el.mobileToolsToggle.lastElementChild.textContent = isOpen ? '\u00d7' : '+';
     });
-    document.addEventListener('keydown', e => {
+    document.addEventListener('keydown', function (e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (el.emailOverlay.classList.contains('visible')) {
+        if (e.key === 'Escape') { closeEmailResults(); e.preventDefault(); }
+        return;
+      }
+      if (el.resultsOverlay.classList.contains('visible')) {
+        if (e.key === 'Escape') { el.resultsOverlay.classList.remove('visible'); e.preventDefault(); }
+        return;
+      }
+      if (quizActive) return;
       switch (e.key) {
         case 'ArrowRight':
         case ' ':
@@ -1697,19 +2040,119 @@
           break;
       }
     });
+
+    if (el.resultsStoryBtn) {
+      el.resultsStoryBtn.addEventListener('click', function () {
+        el.resultsOverlay.classList.remove('visible');
+        transitionToScene(0, true);
+      });
+    }
+    if (el.resultsQuestionsBtn) {
+      el.resultsQuestionsBtn.addEventListener('click', function () {
+        el.resultsOverlay.classList.remove('visible');
+        var reviewDiv = document.createElement('div');
+        reviewDiv.className = 'quiz-review-inline';
+        reviewDiv.setAttribute('role', 'region');
+        reviewDiv.setAttribute('aria-label', 'Question review');
+        QUESTIONS.forEach(function (q, i) {
+          var item = document.createElement('div');
+          item.className = 'quiz-review-item';
+          var qText = document.createElement('div');
+          qText.className = 'quiz-review-q';
+          qText.textContent = (i + 1) + '. ' + q.question;
+          var userAnswer = quizAnswers[q.id];
+          var userLabel = userAnswer !== undefined ? String.fromCharCode(65 + userAnswer) + '. ' + q.options[userAnswer] : 'Not answered';
+          var correctLabel = String.fromCharCode(65 + q.correctAnswer) + '. ' + q.options[q.correctAnswer];
+          var wasCorrect = userAnswer === q.correctAnswer;
+          var ansDiv = document.createElement('div');
+          ansDiv.className = 'quiz-review-ans ' + (wasCorrect ? 'correct' : 'incorrect');
+          ansDiv.textContent = 'Your answer: ' + userLabel;
+          if (!wasCorrect) {
+            var corDiv = document.createElement('div');
+            corDiv.className = 'quiz-review-cor';
+            corDiv.textContent = 'Correct: ' + correctLabel;
+            item.appendChild(qText);
+            item.appendChild(ansDiv);
+            item.appendChild(corDiv);
+          } else {
+            item.appendChild(qText);
+            item.appendChild(ansDiv);
+          }
+          var explDiv = document.createElement('div');
+          explDiv.className = 'quiz-review-expl';
+          explDiv.textContent = q.explanation;
+          item.appendChild(explDiv);
+          reviewDiv.appendChild(item);
+        });
+        var backBtn = document.createElement('button');
+        backBtn.type = 'button';
+        backBtn.className = 'quiz-review-back';
+        backBtn.textContent = 'BACK TO RESULTS';
+        backBtn.addEventListener('click', function () {
+          reviewDiv.remove();
+          el.resultsOverlay.classList.add('visible');
+        });
+        reviewDiv.appendChild(backBtn);
+        document.body.appendChild(reviewDiv);
+        reviewDiv.focus();
+      });
+    }
+    if (el.resultsEmailBtn) {
+      el.resultsEmailBtn.addEventListener('click', openEmailResults);
+    }
+    if (el.resultsDownloadBtn) {
+      el.resultsDownloadBtn.addEventListener('click', openDownloadResults);
+    }
+    if (el.emailCancel) {
+      el.emailCancel.addEventListener('click', closeEmailResults);
+    }
+    if (el.emailForm) {
+      el.emailForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        sendEmailResults();
+      });
+    }
+    if (el.emailSend) {
+      el.emailSend.addEventListener('click', sendEmailResults);
+    }
+    if (el.downloadCancel) {
+      el.downloadCancel.addEventListener('click', closeDownloadResults);
+    }
+    if (el.downloadForm) {
+      el.downloadForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        createResultDownload();
+      });
+    }
   }
 
-  document.addEventListener('visibilitychange', () => {
+  document.addEventListener('visibilitychange', function () {
     if (document.hidden) {
-      stopNarration();
       atmosphereAnimating = false;
       try {
         if (viewer) viewer.spin(false);
       } catch (e) {}
     } else {
-      if (viewer && rotating) try { viewer.spin('y', .25); } catch (e) {}
+      if (!storyPaused && !quizActive) {
+        if (currentSceneIndex >= 0 && scenes[currentSceneIndex] && scenes[currentSceneIndex].atmosphere) {
+          startAtmosphereAnimation();
+        }
+        if (viewer && rotating) try { viewer.spin('y', .25); } catch (e) {}
+      }
     }
   });
+
+  async function showStartWarning() {
+    return new Promise(function (resolve) {
+      var overlay = createStartWarning();
+      overlay.classList.add('visible');
+      document.getElementById('startWarningAcknowledge').addEventListener('click', function () {
+        overlay.classList.remove('visible');
+        setTimeout(function () { overlay.remove(); }, 500);
+        resolve();
+      });
+    });
+  }
 
   async function init() {
     resizeAtmosphere();
@@ -1719,8 +2162,10 @@
     if (!viewer) await ensureViewer();
     setupControls();
     setupNarrationControls();
-    preload(['glucose', 'atp', 'adp', 'g6p', 'f6p', 'fbp', 'dhap', 'g3p']);
+    preload(['glucose', 'atp', 'adp', 'g6p', 'fbp', 'dhap', 'g3p']);
     await wait(800);
+    await showStartWarning();
+    storyStarted = true;
     transitionToScene(0, true);
   }
 

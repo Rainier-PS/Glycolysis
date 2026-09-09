@@ -1,11 +1,11 @@
-# Glycolysis — Project Documentation
+# Glycolysis - Project Documentation
 
 ## 1. Project Overview
 
 An interactive educational website for exploring glycolysis through two complementary experiences:
 
-1. **Landing Page + 3D Viewer** (`index.html`) — Hero section with scroll-to-viewer flow, interactive 3D molecular viewer with 15 molecule selector grid, and premium footer
-2. **Interactive Story** (`story/index.html`) — A cinematic, narrated documentary that walks through all ten enzyme-catalyzed reactions of glycolysis with 3D molecular visualization
+1. **Landing Page + 3D Viewer** (`index.html`) - Hero section with scroll-to-viewer flow, interactive 3D molecular viewer with curated 9 key-molecule selector, and premium footer
+2. **Interactive Story** (`story/index.html`) - A cinematic, narrated conceptual story exploring glycolysis in 10 beats, with quiz checkpoints, signed downloadable results, verification, and optional teacher email composition
 
 Both use 3Dmol.js for real-time 3D molecular rendering of SDF-based structures and share canonical molecular assets.
 
@@ -28,8 +28,9 @@ Both use 3Dmol.js for real-time 3D molecular rendering of SDF-based structures a
 │   └── main.css              Full pathway page CSS (retained extension base; not loaded by any page)
 ├── story/
 │   ├── index.html            Interactive story HTML
-│   ├── story.js              Story JavaScript
-│   └── story.css             Story CSS
+│   ├── story.js              Story JavaScript (scenes, narration, viewer, quiz, results, email)
+│   ├── story.css             Story CSS (cinematic, quiz, results, email)
+│   └── questions.js          Quiz question data module
 ├── molecules/                Canonical SDF molecular assets (15 molecules)
 ├── vendor/
 │   └── 3dmol/
@@ -38,18 +39,24 @@ Both use 3Dmol.js for real-time 3D molecular rendering of SDF-based structures a
     ├── project.md            This file
     ├── story-page.md         Story-specific documentation
     └── MASTER.md             Canonical comprehensive AI-facing reference
+├── public/                   Deployed static copy served by the Worker
+├── worker/
+│   ├── index.js              Worker API and asset routing
+│   └── SETUP.md              Deployment and verification setup
+├── verify.html               Teacher verification page source
+└── wrangler.toml             Root Worker configuration
 ```
 
 ## 3. Architecture
 
 ### Landing Page
-- `index.html` — HTML structure only; all styling lives in `styles/landing.css` and all logic in external `src/viewer.js` + `src/init.js`. The page contains an inline decorative hero SVG (presentation markup, not CSS/JS logic)
+- `index.html` - HTML structure only; all styling lives in `styles/landing.css` and all logic in external `src/viewer.js` + `src/init.js`. The page contains an inline decorative hero SVG (presentation markup, not CSS/JS logic)
 - References `styles/landing.css` for all styling
 - References `vendor/3dmol/3Dmol-min.js` (synchronous, required before init)
 - References `src/viewer.js` (3Dmol wrapper + molecule catalogue)
 - References `src/init.js` (DOM wiring, grid builder, keyboard nav)
 - Dark cinematic palette with CSS custom properties (`--bg`, `--text`, `--muted`, `--accent`, `--line`, `--radius`)
-- 5×3 molecule selector grid on the left, 3D viewer on the right (1fr 1fr split)
+- 3×3 molecule selector grid on the left, 3D viewer on the right (1fr 1fr split) - curated 9 key molecules from the 15-molecule asset library
 - Atom color legend with hover tooltips inside the viewer
 - Viewer controls: AUTO (rotation), H (hydrogens), RESET
 - Default selection: glucose loads on page load
@@ -57,24 +64,27 @@ Both use 3Dmol.js for real-time 3D molecular rendering of SDF-based structures a
 
 ### Legal Pages
 - `privacy.html`, `terms.html`, `accessibility.html`
-- Shared `styles/legal.css` (DRY — single source for all legal page styles)
+- Shared `styles/legal.css` (DRY - single source for all legal page styles)
 - Each has: skip-to-content link, back-to-home link, header, main content, mini footer with cross-links
 - Wider content area (960px) with larger body text (17px) for readability
 
 ### Story Page
-- Separate HTML document with external `story.css` and `story.js`
+- Separate HTML document with external `story.css`, `story.js`, and `questions.js`
 - IIFE-scoped JavaScript
-- 27 scenes with narration, captions, and molecular transitions
+- 10 conceptual beats with narration, captions, and molecular transitions
+- Quiz checkpoints after key beats (5 questions)
+- Results screen with score and question review
+- Signed result creation, downloadable report, verification page, and local email-app composition
 - Web Speech API for narration
 
 ### Shared Assets
-- 3Dmol.js: `vendor/3dmol/3Dmol-min.js` (single canonical copy)
-- Molecules: `molecules/` (15 SDF files, one per molecule)
+- Root files are the editable source copy; matching files under `public/` are the deployed copy.
+- 3Dmol.js and molecule assets are mirrored into `public/` for Worker asset serving.
 
 ## 4. Navigation
 
-- **Landing → Story**: Hero CTA "Interactive Story" + footer "Interactive Story" link
-- **Story → Landing**: "VIEWER" link in narration controls
+- **Landing → Story**: Hero CTA "Enter the Story"
+- **Story → Landing**: HOME button in navigation controls
 - **Landing → Legal**: Footer "Privacy Policy", "Terms of Use", "Accessibility Statement" links
 - **Legal → Landing**: "Home" link with home icon on every legal page
 - **Legal cross-links**: Each legal page links to the other two in its mini footer
@@ -94,8 +104,8 @@ Overall: Glucose + 2 NAD+ + 2 ADP + 2 Pi → 2 Pyruvate + 2 NADH + 2 ATP + 2 H+ 
 15 canonical SDF files in `molecules/`. Each molecule has a subdirectory containing one `.sdf` file. SDF geometry is authoritative; coordinates are not regenerated by the UI.
 
 Molecule data is defined in two places:
-- `src/viewer.js` — `MOLECULES` array (used by landing page viewer)
-- `story/story.js` — `MOL` object (used by story page viewer)
+- `src/viewer.js` - `MOLECULES` array (used by landing page viewer)
+- `story/story.js` - `MOL` object (used by story page viewer)
 
 Both reference the same SDF files. When adding a molecule, add entries to both.
 
@@ -167,10 +177,10 @@ Single canonical copy at `vendor/3dmol/3Dmol-min.js`. Referenced by both landing
 
 ## 11. File Organization (DRY)
 
-- **`styles/legal.css`** — Single shared stylesheet for all 3 legal pages (no duplicated CSS)
-- **`src/viewer.js`** — Single source of truth for molecule metadata on the landing page
-- **CSS custom properties** — Shared `:root` variables per stylesheet
-- **No inline `<style>` or `<script>` blocks** — All styling in external `.css` files, all logic in external `.js` files
+- **`styles/legal.css`** - Single shared stylesheet for all 3 legal pages (no duplicated CSS)
+- **`src/viewer.js`** - Single source of truth for molecule metadata on the landing page
+- **CSS custom properties** - Shared `:root` variables per stylesheet
+- **No inline `<style>` or `<script>` blocks** - All styling in external `.css` files, all logic in external `.js` files
 
 ## 12. Development Workflow
 
@@ -207,8 +217,8 @@ Edit `scenes` array in `story/story.js`. Each scene has: id, phase, molecule, ca
 - Accessibility architecture (skip links, aria attributes, focus management, roving tabindex)
 - Relative path structure
 - The separation between landing page and story page
-- `src/viewer.js` molecule data (MOLECULES array) — shared with init.js
-- `styles/landing.css` and `styles/legal.css` — external stylesheets, no inline fallback
+- `src/viewer.js` molecule data (MOLECULES array) - shared with init.js
+- `styles/landing.css` and `styles/legal.css` - external stylesheets, no inline fallback
 
 ## 15. Quarantine Status
 

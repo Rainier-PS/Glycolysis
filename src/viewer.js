@@ -19,6 +19,15 @@
     { key: 'nadh', name: 'NADH', formula: 'C\u2082\u2081H\u2082\u2089N\u2087O\u2081\u2084P\u2082', category: 'cofactor' }
   ];
 
+  var CURATED_KEYS = [
+    'glucose', 'glucose-6-phosphate', 'fructose-1-6-bisphosphate',
+    'glyceraldehyde-3-phosphate', 'nad-plus', 'nadh', 'atp', 'adp', 'pyruvate'
+  ];
+
+  var CURATED = CURATED_KEYS.map(function (key) {
+    return MOLECULES.find(function (m) { return m.key === key; });
+  }).filter(Boolean);
+
   var MOLECULE_MAP = {};
   MOLECULES.forEach(function (m) { MOLECULE_MAP[m.key] = m; });
 
@@ -137,6 +146,7 @@
 
   window.GlycolysisViewer = {
     MOLECULES: MOLECULES,
+    CURATED: CURATED,
     MOLECULE_MAP: MOLECULE_MAP,
     init: init,
     display: display,

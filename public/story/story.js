@@ -29,6 +29,16 @@
   var quizScore = 0;
   var quizCompleted = 0;
   var quizActive = false;
+  var quizFinished = false;
+
+  var storyStarted = false;
+  var tabChangeLog = [];
+  var tabLeftAt = 0;
+  var awayDuration = 0;
+  var awayReason = '';
+  var cheatingDetected = false;
+  var TAB_WARNING_THRESHOLD_MS = 5000;
+  var TAB_AUTO_RESTART_MS = 300000;
 
   var QUESTIONS = window.GLYCOLYSIS_QUESTIONS || [];
 
@@ -683,7 +693,7 @@
     'navControls', 'narrationControls', 'btnNarration', 'btnHome', 'btnRestart', 'mobileToolsToggle', 'deepDetail', 'deepDetailText', 'overallEquation', 'molFallback', 'srMolDesc',
     'quizOverlay', 'quizContainer', 'quizQuestionText', 'quizOptions', 'quizFeedback', 'quizFeedbackText',
     'quizContinue', 'quizProgress', 'quizProgressText',
-    'resultsOverlay', 'resultsScore', 'resultsPercentage', 'resultsReview', 'resultsStoryBtn', 'resultsQuestionsBtn', 'resultsEmailBtn', 'emailOverlay', 'emailForm', 'emailTeacherName', 'emailTeacherEmail', 'emailStudentName', 'emailSend', 'emailCancel', 'emailNote', 'emailError'
+    'resultsOverlay', 'resultsScore', 'resultsPercentage', 'resultsReview', 'resultsStoryBtn', 'resultsQuestionsBtn', 'resultsDownloadBtn', 'resultsEmailBtn', 'emailOverlay', 'emailForm', 'emailTeacherName', 'emailTeacherEmail', 'emailStudentName', 'emailSend', 'emailCancel', 'emailNote', 'emailError', 'downloadOverlay', 'downloadForm', 'downloadStudentName', 'downloadSubmit', 'downloadCancel', 'downloadError'
   ].forEach(function (id) {
     el[id] = document.getElementById(id);
   });
@@ -1119,6 +1129,9 @@
     var oldContinue = el.quizFeedback.querySelector('.quiz-continue-btn');
     if (oldContinue) oldContinue.remove();
 
+    el.quizOptions.setAttribute('role', 'radiogroup');
+    el.quizOptions.setAttribute('aria-label', q.question);
+
     q.options.forEach(function (opt, i) {
       var btn = document.createElement('button');
       btn.type = 'button';
@@ -1126,6 +1139,7 @@
       btn.setAttribute('role', 'radio');
       btn.setAttribute('aria-checked', 'false');
       btn.setAttribute('data-index', String(i));
+      btn.setAttribute('tabindex', i === 0 ? '0' : '-1');
 
       var letterSpan = document.createElement('span');
       letterSpan.className = 'quiz-option-letter';
@@ -1143,18 +1157,54 @@
         var idx = parseInt(btn.getAttribute('data-index'));
         quizAnswers[q.id] = idx;
         var allOptions = el.quizOptions.querySelectorAll('.quiz-option');
-        allOptions.forEach(function (o) { o.setAttribute('aria-checked', 'false'); });
+        allOptions.forEach(function (o, j) {
+          o.setAttribute('aria-checked', 'false');
+          o.setAttribute('tabindex', j === idx ? '0' : '-1');
+        });
         btn.setAttribute('aria-checked', 'true');
+        btn.setAttribute('tabindex', '0');
+        btn.focus();
         el.quizContinue.classList.add('visible');
-        el.quizContinue.focus();
         el.srLive.textContent = 'Selected: ' + opt;
+      });
+
+      btn.addEventListener('keydown', function (e) {
+        if (quizLocked[q.id]) return;
+        var allOptions = el.quizOptions.querySelectorAll('.quiz-option');
+        var currentIdx = parseInt(btn.getAttribute('data-index'));
+        var nextIdx = -1;
+
+        if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          nextIdx = (currentIdx + 1) % allOptions.length;
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          nextIdx = (currentIdx - 1 + allOptions.length) % allOptions.length;
+        } else if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          btn.click();
+          return;
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          nextIdx = 0;
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          nextIdx = allOptions.length - 1;
+        }
+
+        if (nextIdx >= 0) {
+          allOptions.forEach(function (o) { o.setAttribute('tabindex', '-1'); });
+          allOptions[nextIdx].setAttribute('tabindex', '0');
+          allOptions[nextIdx].focus();
+        }
       });
 
       el.quizOptions.appendChild(btn);
     });
 
     var totalQuestions = QUESTIONS.length;
-    el.quizProgressText.textContent = 'CHECKPOINT ' + (q.checkpoint) + ' OF ' + totalQuestions;
+    var questionNumber = QUESTIONS.indexOf(q) + 1;
+    el.quizProgressText.textContent = 'QUESTION ' + questionNumber + ' OF ' + totalQuestions;
     el.quizOverlay.classList.add('visible');
     el.quizOverlay.focus();
     el.srLive.textContent = 'Quiz checkpoint: ' + q.question;
@@ -1197,6 +1247,8 @@
   }
 
   function showResults() {
+    quizFinished = true;
+    hideTabWarning();
     var total = QUESTIONS.length;
     var pct = total > 0 ? Math.round((quizScore / total) * 100) : 0;
     el.resultsScore.textContent = quizScore + ' / ' + total;
@@ -1273,9 +1325,245 @@
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
+  function formatDuration(ms) {
+    var seconds = Math.floor(ms / 1000);
+    if (seconds < 60) return seconds + ' second' + (seconds !== 1 ? 's' : '');
+    var minutes = Math.floor(seconds / 60);
+    var remainSec = seconds % 60;
+    return minutes + ' minute' + (minutes !== 1 ? 's' : '') + (remainSec > 0 ? ' ' + remainSec + ' second' + (remainSec !== 1 ? 's' : '') : '');
+  }
+
+  function createTabWarningOverlay() {
+    var overlay = document.createElement('div');
+    overlay.id = 'tabWarningOverlay';
+    overlay.className = 'tab-overlay';
+    overlay.setAttribute('role', 'alert');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML = '<div class="tab-overlay-content">' +
+      '<div class="tab-overlay-icon" aria-hidden="true">!</div>' +
+      '<div class="tab-overlay-title">TAB CHANGE DETECTED</div>' +
+      '<div class="tab-overlay-text">You have left the quiz. Tab changes are being monitored and logged.</div>' +
+      '<div class="tab-overlay-subtext" id="tabAwayTimer"></div>' +
+      '<div class="tab-overlay-warning">Returning after more than 5 minutes will restart the quiz.</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function createReasonModal() {
+    var overlay = document.createElement('div');
+    overlay.id = 'reasonModal';
+    overlay.className = 'tab-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Explain your absence');
+    overlay.innerHTML = '<div class="tab-overlay-content">' +
+      '<div class="tab-overlay-title">YOU WERE AWAY</div>' +
+      '<div class="tab-overlay-text" id="reasonAwayDuration"></div>' +
+      '<div class="tab-overlay-subtext">Please explain or justify why you were away:</div>' +
+      '<textarea id="reasonInput" class="reason-input" rows="3" maxlength="500" placeholder="Enter your reason here..." aria-label="Reason for absence"></textarea>' +
+      '<div class="reason-error" id="reasonError" role="alert"></div>' +
+      '<div class="tab-overlay-actions">' +
+      '<button type="button" id="reasonSubmit" class="tab-overlay-btn">SUBMIT REASON</button>' +
+      '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function createStartWarning() {
+    var overlay = document.createElement('div');
+    overlay.id = 'startWarningOverlay';
+    overlay.className = 'tab-overlay';
+    overlay.setAttribute('role', 'alertdialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Quiz integrity notice');
+    overlay.innerHTML = '<div class="tab-overlay-content">' +
+      '<div class="tab-overlay-icon" aria-hidden="true">!</div>' +
+      '<div class="tab-overlay-title">QUIZ INTEGRITY NOTICE</div>' +
+      '<div class="tab-overlay-text">This quiz monitors tab and window focus to ensure academic integrity.</div>' +
+      '<div class="tab-overlay-rules">' +
+      '<div class="tab-overlay-rule">Tab changes are logged with timestamps and duration</div>' +
+      '<div class="tab-overlay-rule">Being away for more than 5 minutes will auto-restart the quiz</div>' +
+      '<div class="tab-overlay-rule">You may be asked to explain any absence</div>' +
+      '<div class="tab-overlay-rule">All activity is included in the results sent to your teacher</div>' +
+      '</div>' +
+      '<div class="tab-overlay-actions">' +
+      '<button type="button" id="startWarningAcknowledge" class="tab-overlay-btn">I UNDERSTAND</button>' +
+      '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  var tabWarningOverlay = null;
+  var tabAwayTimerInterval = null;
+
+  function showTabWarning() {
+    if (!tabWarningOverlay) tabWarningOverlay = createTabWarningOverlay();
+    tabWarningOverlay.classList.add('visible');
+    var timerEl = document.getElementById('tabAwayTimer');
+    if (timerEl) timerEl.textContent = '';
+    if (tabAwayTimerInterval) clearInterval(tabAwayTimerInterval);
+    tabAwayTimerInterval = setInterval(function () {
+      if (tabLeftAt > 0 && timerEl) {
+        var elapsed = Date.now() - tabLeftAt;
+        timerEl.textContent = 'Away for: ' + formatDuration(elapsed);
+        if (elapsed >= TAB_AUTO_RESTART_MS) {
+          clearInterval(tabAwayTimerInterval);
+          tabAwayTimerInterval = null;
+          handleAutoRestart();
+        }
+      }
+    }, 1000);
+  }
+
+  function hideTabWarning() {
+    if (tabWarningOverlay) tabWarningOverlay.classList.remove('visible');
+    if (tabAwayTimerInterval) {
+      clearInterval(tabAwayTimerInterval);
+      tabAwayTimerInterval = null;
+    }
+  }
+
+  var reasonModal = null;
+  var reasonSubmitHandler = null;
+
+  function showReasonModal(duration) {
+    return new Promise(function (resolve) {
+      if (!reasonModal) reasonModal = createReasonModal();
+      var durationEl = document.getElementById('reasonAwayDuration');
+      var inputEl = document.getElementById('reasonInput');
+      var errorEl = document.getElementById('reasonError');
+      var submitEl = document.getElementById('reasonSubmit');
+      if (durationEl) durationEl.textContent = 'You were away for ' + formatDuration(duration) + '.';
+      if (inputEl) inputEl.value = '';
+      if (errorEl) errorEl.textContent = '';
+      reasonModal.classList.add('visible');
+      if (inputEl) inputEl.focus();
+      if (reasonSubmitHandler) submitEl.removeEventListener('click', reasonSubmitHandler);
+      reasonSubmitHandler = function () {
+        var reason = (inputEl ? inputEl.value : '').trim();
+        if (!reason) {
+          if (errorEl) errorEl.textContent = 'Please enter a reason before submitting.';
+          if (inputEl) inputEl.focus();
+          return;
+        }
+        reasonModal.classList.remove('visible');
+        resolve(reason);
+      };
+      submitEl.addEventListener('click', reasonSubmitHandler);
+    });
+  }
+
+  function handleAutoRestart() {
+    cheatingDetected = true;
+    hideTabWarning();
+    tabChangeLog.push({
+      type: 'auto-restart',
+      timestamp: new Date().toISOString(),
+      duration: TAB_AUTO_RESTART_MS,
+      message: 'Quiz auto-restarted due to absence exceeding 5 minutes'
+    });
+    cancelCountdown();
+    clearCaptions();
+    stopNarration();
+    quizAnswers = {};
+    quizLocked = {};
+    quizScore = 0;
+    quizCompleted = 0;
+    quizActive = false;
+    transitioning = false;
+    autoAdvanceActive = true;
+    storyStarted = false;
+    if (storyPaused) {
+      storyPaused = false;
+      el.btnPause.querySelector('span').textContent = 'PAUSE';
+      el.btnPause.querySelector('path').setAttribute('d', 'M7 5v14M17 5v14');
+      el.btnPause.classList.remove('paused-state');
+      el.btnPause.setAttribute('aria-pressed', 'false');
+      el.btnPause.setAttribute('aria-label', 'Pause story (P)');
+    }
+    el.resultsOverlay.classList.remove('visible');
+    el.emailOverlay.classList.remove('visible');
+    el.quizOverlay.classList.remove('visible');
+    if (currentMolKey) clearMolecule();
+    el.viewport.style.opacity = '1';
+    el.viewport.style.transform = '';
+    tabLeftAt = 0;
+    showAutoRestartMessage();
+  }
+
+  function showAutoRestartMessage() {
+    var overlay = document.createElement('div');
+    overlay.id = 'autoRestartOverlay';
+    overlay.className = 'tab-overlay';
+    overlay.setAttribute('role', 'alertdialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML = '<div class="tab-overlay-content">' +
+      '<div class="tab-overlay-icon" aria-hidden="true">!</div>' +
+      '<div class="tab-overlay-title">QUIZ RESTARTED</div>' +
+      '<div class="tab-overlay-text">You were away for more than 5 minutes. The quiz has been restarted from the beginning.</div>' +
+      '<div class="tab-overlay-subtext">This incident has been logged.</div>' +
+      '<div class="tab-overlay-actions">' +
+      '<button type="button" id="autoRestartAcknowledge" class="tab-overlay-btn">RESTART QUIZ</button>' +
+      '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    overlay.classList.add('visible');
+    document.getElementById('autoRestartAcknowledge').addEventListener('click', function () {
+      overlay.remove();
+      transitionToScene(0, true);
+    });
+  }
+
+  var visibilityChangeCount = 0;
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      if (!storyStarted || quizActive || quizFinished || el.resultsOverlay.classList.contains('visible') || el.emailOverlay.classList.contains('visible')) return;
+      tabLeftAt = Date.now();
+      showTabWarning();
+      if (el.srLive) el.srLive.textContent = 'You have left the quiz tab. Tab changes are being monitored.';
+    } else {
+      var leftAt = tabLeftAt;
+      tabLeftAt = 0;
+      hideTabWarning();
+      if (!storyStarted || quizActive || quizFinished || el.resultsOverlay.classList.contains('visible') || el.emailOverlay.classList.contains('visible')) return;
+      if (leftAt > 0) {
+        awayDuration = Date.now() - leftAt;
+        visibilityChangeCount++;
+        var logEntry = {
+          type: 'tab-return',
+          timestamp: new Date().toISOString(),
+          duration: awayDuration,
+          index: visibilityChangeCount
+        };
+        if (awayDuration >= TAB_AUTO_RESTART_MS) {
+          logEntry.type = 'auto-restart-trigger';
+          tabChangeLog.push(logEntry);
+          handleAutoRestart();
+          return;
+        }
+        if (awayDuration >= TAB_WARNING_THRESHOLD_MS) {
+          showReasonModal(awayDuration).then(function (reason) {
+            awayReason = reason;
+            logEntry.reason = reason;
+            tabChangeLog.push(logEntry);
+            if (el.srLive) el.srLive.textContent = 'Reason recorded. You may continue the quiz.';
+          });
+        } else {
+          logEntry.reason = 'Brief absence (under 5 seconds)';
+          tabChangeLog.push(logEntry);
+        }
+      }
+    }
+  });
+
   var lastFocusedElement = null;
 
   function openEmailResults() {
+    hideTabWarning();
     lastFocusedElement = document.activeElement;
     el.emailOverlay.classList.add('visible');
     el.emailError.textContent = '';
@@ -1292,54 +1580,89 @@
     if (lastFocusedElement) lastFocusedElement.focus();
   }
 
-  function buildEmailBody() {
-    var total = QUESTIONS.length;
-    var pct = total > 0 ? Math.round((quizScore / total) * 100) : 0;
-    var studentName = sanitizeInput(el.emailStudentName.value);
-    var teacherName = sanitizeInput(el.emailTeacherName.value);
-    var lines = [];
-    lines.push('Glycolysis Interactive - Quiz Results');
-    lines.push('');
-    lines.push('Teacher: ' + teacherName);
-    if (studentName) lines.push('Student: ' + studentName);
-    lines.push('Score: ' + quizScore + ' / ' + total + ' (' + pct + '%)');
-    lines.push('');
-    QUESTIONS.forEach(function (q, i) {
-      var userAnswer = quizAnswers[q.id];
-      var userLabel = userAnswer !== undefined ? String.fromCharCode(65 + userAnswer) + '. ' + q.options[userAnswer] : 'Not answered';
-      var correctLabel = String.fromCharCode(65 + q.correctAnswer) + '. ' + q.options[q.correctAnswer];
-      var wasCorrect = userAnswer === q.correctAnswer;
-      lines.push((i + 1) + '. ' + q.question);
-      lines.push('   Your answer: ' + userLabel + (wasCorrect ? ' (Correct)' : ' (Incorrect)'));
-      if (!wasCorrect) lines.push('   Correct answer: ' + correctLabel);
-      lines.push('');
+  var RESULT_API = '/api/create-result';
+
+  function readApiResponse(res, fallbackMessage) {
+    return res.text().then(function (text) {
+      var data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (e) {
+        throw new Error('The quiz server returned an HTML page instead of JSON. Please open the quiz through the deployed worker URL, not a static file server.');
+      }
+      if (!res.ok) throw new Error(data.error || fallbackMessage);
+      return data;
     });
-    lines.push('Generated by Glycolysis Interactive');
-    return lines.join('\n');
   }
 
-  var EMAIL_API = '/api/send-email';
-
-  function sendEmailToBackend(teacherName, teacherEmail, studentName, subject, body) {
-    if (!EMAIL_API) {
-      return Promise.reject(new Error('Email service not configured. Please contact your teacher.'));
-    }
-    return fetch(EMAIL_API, {
+  function createVerifiedResult(studentName) {
+    var answers = QUESTIONS.map(function (q, index) {
+      return {
+        questionIndex: index,
+        answerIndex: quizAnswers[q.id]
+      };
+    });
+    return fetch(RESULT_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        teacherName: teacherName,
-        teacherEmail: teacherEmail,
-        studentName: studentName,
-        subject: subject,
-        message: body
-      })
+      body: JSON.stringify({ studentName: studentName, answers: answers })
     }).then(function (res) {
-      return res.json().then(function (data) {
-        if (!res.ok || !data.success) throw new Error(data.error || 'Failed to send email.');
-        return data;
-      });
+      return readApiResponse(res, 'Could not create verified results.');
     });
+  }
+
+  function createResultDownload() {
+    var studentName = sanitizeInput(el.downloadStudentName.value);
+    el.downloadError.textContent = '';
+    if (!studentName) {
+      el.downloadError.textContent = 'Please enter your name.';
+      el.downloadStudentName.focus();
+      return;
+    }
+
+    el.downloadSubmit.disabled = true;
+    el.downloadSubmit.textContent = 'PREPARING...';
+    createVerifiedResult(studentName).then(function (data) {
+      var answerRows = QUESTIONS.map(function (q, index) {
+        var selected = quizAnswers[q.id];
+        var userLabel = selected !== undefined ? String.fromCharCode(65 + selected) + '. ' + q.options[selected] : 'Not answered';
+        var correct = selected === q.correctAnswer;
+        return '<tr><td>' + (index + 1) + '</td><td>' + escapeHtml(q.question) + '</td><td>' + escapeHtml(userLabel) + '</td><td class="' + (correct ? 'correct' : 'incorrect') + '">' + (correct ? 'Correct' : 'Incorrect') + '</td></tr>';
+      }).join('');
+      var documentText = '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Glycolysis Results - ' + escapeHtml(studentName) + '</title><style>body{font-family:Arial,sans-serif;max-width:900px;margin:40px auto;padding:0 20px;color:#17202a}h1{margin-bottom:4px}p{line-height:1.5}.score{font-size:32px;font-weight:700;margin:24px 0}table{border-collapse:collapse;width:100%;margin-top:24px}th,td{border:1px solid #c9d0d6;padding:10px;text-align:left;vertical-align:top}th{background:#eef2f4}.correct{color:#177245;font-weight:700}.incorrect{color:#a33a2e;font-weight:700}.verify{margin-top:28px;padding:16px;background:#f1f5f5;border-left:4px solid #7dce3b}.code{font:700 20px monospace;letter-spacing:1px}</style></head><body><h1>Glycolysis Quiz Results</h1><p>Student: ' + escapeHtml(studentName) + '</p><div class="score">Score: ' + data.score + ' / ' + data.total + ' (' + Math.round((data.score / data.total) * 100) + '%)</div><p>Completed: ' + escapeHtml(new Date(data.completedAt).toLocaleString()) + '</p><table><thead><tr><th>#</th><th>Question</th><th>Answer</th><th>Result</th></tr></thead><tbody>' + answerRows + '</tbody></table><div class="verify"><strong>Verification code</strong><div class="code">' + escapeHtml(data.verificationCode) + '</div><p>Verify this result online: <a href="' + escapeHtml(data.verifyUrl) + '">' + escapeHtml(data.verifyUrl) + '</a></p><p>The online verification record is authoritative. Changes to this file will not change the server-verified result.</p></div></body></html>';
+      var blob = new Blob([documentText], { type: 'text/html;charset=utf-8' });
+      var link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = data.resultId.toLowerCase() + '-results.html';
+      document.body.appendChild(link);
+      link.click();
+      URL.revokeObjectURL(link.href);
+      link.remove();
+      el.downloadSubmit.disabled = false;
+      el.downloadSubmit.textContent = 'DOWNLOAD FILE';
+      el.downloadOverlay.classList.remove('visible');
+      if (lastFocusedElement) lastFocusedElement.focus();
+    }).catch(function (err) {
+      el.downloadError.textContent = err.message || 'Could not create verified results.';
+      el.downloadSubmit.disabled = false;
+      el.downloadSubmit.textContent = 'DOWNLOAD FILE';
+    });
+  }
+
+  function openDownloadResults() {
+    hideTabWarning();
+    lastFocusedElement = document.activeElement;
+    el.downloadOverlay.classList.add('visible');
+    el.downloadError.textContent = '';
+    el.downloadStudentName.value = '';
+    el.downloadSubmit.disabled = false;
+    el.downloadSubmit.textContent = 'DOWNLOAD FILE';
+    setTimeout(function () { el.downloadStudentName.focus(); }, 100);
+  }
+
+  function closeDownloadResults() {
+    el.downloadOverlay.classList.remove('visible');
+    if (lastFocusedElement) lastFocusedElement.focus();
   }
 
   function sendEmailResults() {
@@ -1371,19 +1694,31 @@
     }
 
     el.emailSend.disabled = true;
-    el.emailSend.textContent = 'SENDING...';
+    el.emailSend.textContent = 'OPENING EMAIL...';
 
-    var total = QUESTIONS.length;
-    var pct = total > 0 ? Math.round((quizScore / total) * 100) : 0;
-    var subject = 'Glycolysis Quiz Results - ' + studentName;
-    var body = buildEmailBody();
-
-    sendEmailToBackend(teacherName, teacherEmail, studentName, subject, body)
-      .then(function () {
+    createVerifiedResult(studentName)
+      .then(function (data) {
+        var answerLines = QUESTIONS.map(function (q, index) {
+          var selected = quizAnswers[q.id];
+          var answerText = selected !== undefined ? q.options[selected] : 'Not answered';
+          return (index + 1) + '. ' + answerText + (selected === q.correctAnswer ? ' (Correct)' : ' (Incorrect)');
+        }).join('\n');
+        var body = 'Hello ' + teacherName + ',\n\n' +
+          studentName + ' completed the Glycolysis quiz.\n\n' +
+          'Score: ' + data.score + ' / ' + data.total + ' (' + Math.round((data.score / data.total) * 100) + '%)\n' +
+          'Completed: ' + new Date(data.completedAt).toLocaleString() + '\n' +
+          'Verification code: ' + data.verificationCode + '\n' +
+          'Verify this result: ' + data.verifyUrl + '\n\n' +
+          'Answer summary:\n' + answerLines + '\n\n' +
+          'The verification link is the authoritative record. The student may attach the downloaded results file separately.\n\n' +
+          'Regards,\n' + studentName;
+        window.location.href = 'mailto:' + encodeURIComponent(teacherEmail) +
+          '?subject=' + encodeURIComponent('Glycolysis Quiz Results - ' + studentName) +
+          '&body=' + encodeURIComponent(body);
         el.emailError.textContent = '';
-        el.emailSend.textContent = 'SENT SUCCESSFULLY';
-        el.emailSend.disabled = true;
-        setTimeout(closeEmailResults, 1500);
+        el.emailSend.textContent = 'EMAIL APP OPENED';
+        el.emailSend.disabled = false;
+        setTimeout(closeEmailResults, 1200);
       })
       .catch(function (err) {
         var msg = err.message || 'Could not send email.';
@@ -1592,8 +1927,16 @@
       quizScore = 0;
       quizCompleted = 0;
       quizActive = false;
+      quizFinished = false;
       transitioning = false;
       autoAdvanceActive = true;
+      tabChangeLog = [];
+      tabLeftAt = 0;
+      awayDuration = 0;
+      awayReason = '';
+      cheatingDetected = false;
+      visibilityChangeCount = 0;
+      storyStarted = false;
       if (storyPaused) {
         storyPaused = false;
         el.btnPause.querySelector('span').textContent = 'PAUSE';
@@ -1770,6 +2113,9 @@
     if (el.resultsEmailBtn) {
       el.resultsEmailBtn.addEventListener('click', openEmailResults);
     }
+    if (el.resultsDownloadBtn) {
+      el.resultsDownloadBtn.addEventListener('click', openDownloadResults);
+    }
     if (el.emailCancel) {
       el.emailCancel.addEventListener('click', closeEmailResults);
     }
@@ -1781,6 +2127,15 @@
     }
     if (el.emailSend) {
       el.emailSend.addEventListener('click', sendEmailResults);
+    }
+    if (el.downloadCancel) {
+      el.downloadCancel.addEventListener('click', closeDownloadResults);
+    }
+    if (el.downloadForm) {
+      el.downloadForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        createResultDownload();
+      });
     }
   }
 
@@ -1800,6 +2155,18 @@
     }
   });
 
+  async function showStartWarning() {
+    return new Promise(function (resolve) {
+      var overlay = createStartWarning();
+      overlay.classList.add('visible');
+      document.getElementById('startWarningAcknowledge').addEventListener('click', function () {
+        overlay.classList.remove('visible');
+        setTimeout(function () { overlay.remove(); }, 500);
+        resolve();
+      });
+    });
+  }
+
   async function init() {
     resizeAtmosphere();
     window.addEventListener('resize', resizeAtmosphere);
@@ -1810,6 +2177,8 @@
     setupNarrationControls();
     preload(['glucose', 'atp', 'adp', 'g6p', 'fbp', 'dhap', 'g3p']);
     await wait(800);
+    await showStartWarning();
+    storyStarted = true;
     transitionToScene(0, true);
   }
 

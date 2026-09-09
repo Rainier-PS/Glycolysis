@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Glycolysis Result</title>
+  <style>
+    :root { color-scheme: light; font-family: Arial, sans-serif; background: #f3f5f7; color: #17202a; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+    main { width: min(520px, 100%); background: #fff; border: 1px solid #d5dce1; padding: 32px; box-shadow: 0 8px 24px rgba(23, 32, 42, .08); }
+    h1 { margin: 0 0 8px; font-size: 24px; }
+    p { line-height: 1.5; color: #53616d; }
+    label { display: block; margin-top: 24px; margin-bottom: 6px; font-weight: 700; }
+    input { width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid #b9c3ca; font: inherit; }
+    button { margin-top: 12px; padding: 12px 18px; border: 0; background: #263238; color: #fff; font: inherit; cursor: pointer; }
+    #status { margin-top: 24px; padding: 16px; border-left: 4px solid #b9c3ca; background: #f3f5f7; }
+    #status.valid { border-color: #27824b; background: #edf8f1; }
+    #status.invalid { border-color: #b33a2e; background: #fff1ef; }
+    .result-value { font-size: 28px; font-weight: 700; color: #17202a; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Verify Glycolysis Result</h1>
+    <p>Enter the verification code shown on the student's downloaded result file.</p>
+    <form id="verifyForm">
+      <label for="code">Verification code</label>
+      <input id="code" name="code" autocomplete="off" autocapitalize="characters" required>
+      <button type="submit">VERIFY RESULT</button>
+    </form>
+    <div id="status" aria-live="polite">No result verified yet.</div>
+  </main>
+  <script>
+    (function () {
+      var form = document.getElementById('verifyForm');
+      var code = document.getElementById('code');
+      var status = document.getElementById('status');
+      var params = new URLSearchParams(window.location.search);
+      code.value = params.get('code') || '';
+
+      function showStatus(className, html) {
+        status.className = className;
+        status.innerHTML = html;
+      }
+
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var value = code.value.trim().toUpperCase();
+        if (!value) {
+          showStatus('invalid', 'Enter a verification code.');
+          return;
+        }
+        showStatus('', 'Checking result...');
+        fetch('/api/verify-result?code=' + encodeURIComponent(value))
+          .then(function (response) {
+            return response.json().then(function (data) {
+              if (!response.ok) throw new Error(data.error || 'Result could not be verified.');
+              return data;
+            });
+          })
+          .then(function (data) {
+            showStatus('valid', '<strong>VALID RESULT</strong><p>Student: ' + escapeHtml(data.studentName) + '</p><p class="result-value">' + data.score + ' / ' + data.total + '</p><p>Completed: ' + escapeHtml(new Date(data.completedAt).toLocaleString()) + '</p><p>Result ID: ' + escapeHtml(data.resultId) + '</p>');
+          })
+          .catch(function (error) {
+            showStatus('invalid', '<strong>NOT VERIFIED</strong><p>' + escapeHtml(error.message) + '</p>');
+          });
+      });
+
+      function escapeHtml(value) {
+        return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      }
+
+      if (code.value) form.dispatchEvent(new Event('submit'));
+    }());
+  </script>
+</body>
+</html>

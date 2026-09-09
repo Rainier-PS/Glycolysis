@@ -64,7 +64,7 @@
       phase: 1,
       explanation: 'PFK-1 transfers a second phosphate from ATP to carbon 1 of fructose-6-phosphate, producing fructose-1,6-bisphosphate. This is the major committed and rate-controlling step of glycolysis, subject to extensive allosteric regulation.',
       whyItMatters: 'PFK-1 is inhibited by high ATP and citrate, and activated by AMP, ADP, and fructose-2,6-bisphosphate. This makes it the primary control point for glycolytic flux.',
-      irreversibility: 'Strongly irreversible — the committed step of glycolysis.'
+      irreversibility: 'Strongly irreversible. The committed step of glycolysis.'
     },
     {
       step: 4,
@@ -77,7 +77,7 @@
       atpChange: 0, nadhChange: 0,
       molecules: { substrates: ['fructose-1-6-bisphosphate'], products: ['dhap', 'glyceraldehyde-3-phosphate'] },
       phase: 1,
-      explanation: 'Aldolase cleaves the six-carbon fructose-1,6-bisphosphate into two three-carbon triose phosphates: dihydroxyacetone phosphate (DHAP) and glyceraldehyde-3-phosphate (G3P). The carbon–carbon bond between C3 and C4 is broken.',
+      explanation: 'Aldolase cleaves the six-carbon fructose-1,6-bisphosphate into two three-carbon triose phosphates: dihydroxyacetone phosphate (DHAP) and glyceraldehyde-3-phosphate (G3P). The carbon-carbon bond between C3 and C4 is broken.',
       whyItMatters: 'This is the key cleavage step that converts a single six-carbon intermediate into two three-carbon molecules. However, only G3P can continue directly through the payoff phase.',
       irreversibility: 'Reversible under cellular conditions.'
     },
@@ -122,7 +122,7 @@
       atpChange: 1, nadhChange: 0,
       molecules: { substrates: ['1-3-bisphosphoglycerate', 'adp'], products: ['3-phosphoglycerate', 'atp'] },
       phase: 2,
-      explanation: 'Phosphoglycerate kinase transfers the high-energy acyl phosphate from C1 of 1,3-bisphosphoglycerate to ADP, producing ATP and 3-phosphoglycerate. This is substrate-level phosphorylation — direct transfer of a phosphoryl group to ADP without involvement of the electron transport chain.',
+      explanation: 'Phosphoglycerate kinase transfers the high-energy acyl phosphate from C1 of 1,3-bisphosphoglycerate to ADP, producing ATP and 3-phosphoglycerate. This is substrate-level phosphorylation. Direct transfer of a phosphoryl group to ADP without involvement of the electron transport chain.',
       whyItMatters: 'Two ATP are produced per glucose at this step, beginning to repay the ATP investment of the preparatory phase.',
       irreversibility: 'Reversible under cellular conditions.'
     },
@@ -152,7 +152,7 @@
       atpChange: 0, nadhChange: 0,
       molecules: { substrates: ['2-phosphoglycerate'], products: ['phosphoenolpyruvate'] },
       phase: 2,
-      explanation: 'Enolase catalyzes the removal of water from 2-phosphoglycerate, creating a carbon–carbon double bond. The product, phosphoenolpyruvate (PEP), contains an enol phosphate with exceptionally high phosphoryl-transfer potential.',
+      explanation: 'Enolase catalyzes the removal of water from 2-phosphoglycerate, creating a carbon-carbon double bond. The product, phosphoenolpyruvate (PEP), contains an enol phosphate with exceptionally high phosphoryl-transfer potential.',
       whyItMatters: 'Dehydration redistributes energy within the molecule, converting a relatively low-energy phosphate ester into a high-energy enol phosphate capable of driving ATP synthesis.',
       irreversibility: 'Reversible under cellular conditions. Requires Mg²⁺.'
     },

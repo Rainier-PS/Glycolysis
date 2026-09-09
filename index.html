@@ -8,11 +8,11 @@
   <link rel="canonical" href="https://glycolysis-project.example/">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Glycolysis | Interactive 3D Molecular Viewer">
-  <meta property="og:description" content="Explore glycolysis through an interactive 3D molecular viewer with all 15 pathway intermediates and cofactors.">
+  <meta property="og:description" content="Explore glycolysis through an interactive 3D molecular viewer with key pathway molecules.">
   <meta property="og:url" content="https://glycolysis-project.example/">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Glycolysis | Interactive 3D Molecular Viewer">
-  <meta name="twitter:description" content="Explore glycolysis through an interactive 3D molecular viewer with all 15 pathway intermediates and cofactors.">
+  <meta name="twitter:description" content="Explore glycolysis through an interactive 3D molecular viewer with key pathway molecules.">
   <meta name="google-site-verification" content="REPLACE_WITH_GOOGLE_VERIFICATION_TOKEN">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Glycolysis Interactive","description":"An interactive 3D molecular viewer for exploring the glycolysis metabolic pathway.","applicationCategory":"EducationalApplication","operatingSystem":"Web Browser","url":"https://glycolysis-project.example/"}</script>
   <link rel="stylesheet" href="styles/landing.css">
@@ -53,19 +53,19 @@
     <div class="page-context" aria-hidden="true"><strong>MOLECULAR PATHWAY</strong></div>
     <div class="hero-content">
       <div class="hero-copy">
-        <p class="eyebrow">CELLULAR ENERGY · INTERACTIVE MOLECULAR LECTURE</p>
+        <p class="eyebrow">CELLULAR ENERGY &middot; INTERACTIVE MOLECULAR EXPERIENCE</p>
         <h1 id="hero-title">GLYCOLYSIS</h1>
         <div class="hero-rule" aria-hidden="true"></div>
-        <p class="description">A ten-step pathway through the cytosol that converts glucose into pyruvate, generating ATP and NADH.</p>
+        <p class="description">An interactive educational experience exploring how cells break down glucose into pyruvate, capturing energy as ATP and NADH through ten enzymatic reactions.</p>
         <a class="story-link" href="story/index.html">
           <span class="story-copy">
-            <span class="story-title">Interactive Story</span>
+            <span class="story-title">Enter the Story</span>
             <span class="story-subtitle">Follow glucose to pyruvate</span>
           </span>
           <span class="story-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 12h15M13 6l6 6-6 6"/></svg></span>
         </a>
       </div>
-      <a class="scroll-cue" href="#viewerSection">SCROLL TO ENTER THE CYTOSOL <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M12 5v14M19 12l-7 7-7-7"/></svg></a>
+      <a class="scroll-cue" href="#viewerSection">SCROLL TO EXPLORE <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M12 5v14M19 12l-7 7-7-7"/></svg></a>
     </div>
   </section>
 
@@ -79,10 +79,10 @@
         <button class="viewer-gate-btn" id="viewerBack" type="button">GO BACK</button>
       </div>
     </div>
-    <div class="viewer-inner" id="viewerContent">
+    <div class="viewer-inner" id="viewerContent" hidden>
       <div class="viewer-sidebar">
-        <h2 class="viewer-heading" id="viewer-heading">Pick a molecule</h2>
-        <p class="viewer-subtitle">Select a molecule to explore its interactive 3D structure.</p>
+        <h2 class="viewer-heading" id="viewer-heading">Key Molecules</h2>
+        <p class="viewer-subtitle">The pathway is easier to understand when its molecules are treated as physical structures rather than names on a page.</p>
         <div class="mol-btn-grid" id="molGrid" role="radiogroup" aria-label="Molecule selector"></div>
       </div>
       <div class="viewer-main">
@@ -114,12 +114,11 @@
     <div class="footer-top">
       <div class="footer-brand">
         <div class="footer-logo">Glycolysis<span class="accent">.</span></div>
-        <p class="footer-tagline">An interactive molecular lecture exploring the ten-step metabolic pathway from glucose to pyruvate, through the cytosol.</p>
+        <p class="footer-tagline">An interactive educational experience exploring the ten-step metabolic pathway from glucose to pyruvate, through the cytosol.</p>
       </div>
       <nav class="footer-col" aria-label="Explore">
         <span class="footer-col-title">Explore</span>
         <a href="#viewerSection">3D Molecular Viewer</a>
-        <a href="story/index.html">Interactive Story</a>
       </nav>
       <nav class="footer-col" aria-label="Legal">
         <span class="footer-col-title">Legal</span>
@@ -130,12 +129,12 @@
       <div class="footer-col">
         <span class="footer-col-title">About</span>
         <a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank" rel="noopener">Molecule Data (PubChem)</a>
-        <a href="https://github.com" target="_blank" rel="noopener">Source on GitHub</a>
+        <a href="https://github.com/Rainier-PS/Glycolysis" target="_blank" rel="noopener">Source Code (GitHub)</a>
       </div>
     </div>
     <div class="footer-divider"></div>
     <div class="footer-bottom">
-      <span class="footer-copy">© 2026 Glycolysis Interactive. Educational use only.</span>
+      <span class="footer-copy">&copy; 2026 Glycolysis Interactive. Educational use only.</span>
       <div class="footer-bottom-links">
         <a href="#" class="footer-back-top" aria-label="Back to top"><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg> Back to top</a>
       </div>

@@ -1,180 +1,246 @@
-/**
- * Cloudflare Worker: Glycolysis Educational Website
- *
- * Responsibilities:
- *   1. Serve static website from /public via ASSETS binding
- *   2. Handle POST /api/send-email for quiz results
- *
- * Environment variables:
- *   RESEND_API_KEY  — Set via `wrangler secret put RESEND_API_KEY` (never in code)
- *   SEND_FROM       — Sender address (configured in wrangler.toml [vars])
- *   TURNSTILE_SECRET — (Optional) Cloudflare Turnstile secret for abuse protection
- */
-
 const API_HEADERS = {
   'Content-Type': 'application/json',
   'X-Content-Type-Options': 'nosniff',
 };
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
-
-// Input length limits
+const RESULT_RATE_LIMIT_KEY = 'result_rate_v1';
+const VERIFY_RATE_LIMIT_KEY = 'verify_rate_v1';
+const RESULT_PREFIX = 'quiz_result:';
+const RESULT_TTL_SECONDS = 31536000;
+const RATE_LIMIT_WINDOW_MS = 60000;
+const RATE_LIMIT_MAX_REQUESTS = 5;
 const MAX_NAME_LENGTH = 200;
-const MAX_EMAIL_LENGTH = 254;
-const MAX_SUBJECT_LENGTH = 300;
-const MAX_MESSAGE_LENGTH = 10000;
+const MAX_REQUEST_BYTES = 10000;
+const MAX_OPTIONS_PER_QUESTION = 6;
+const EXPECTED_QUESTION_COUNT = 5;
 
-// Simple email validation
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
+const CORRECT_ANSWERS = [
+  { correctIndex: 1 },
+  { correctIndex: 0 },
+  { correctIndex: 1 },
+  { correctIndex: 0 },
+  { correctIndex: 2 },
+];
 
-// Sanitize: remove control characters, trim, and enforce max length
-function sanitize(str, maxLength) {
-  return (str || '')
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
-    .trim()
-    .substring(0, maxLength);
-}
-
-// JSON error response helper
 function jsonError(message, status) {
   return new Response(JSON.stringify({ error: message }), {
     status,
-    headers: { ...CORS_HEADERS, ...API_HEADERS },
+    headers: API_HEADERS,
   });
 }
 
-// JSON success response helper
 function jsonSuccess(data) {
   return new Response(JSON.stringify(data), {
     status: 200,
-    headers: { ...CORS_HEADERS, ...API_HEADERS },
+    headers: API_HEADERS,
+  });
+}
+
+function sanitizeName(value) {
+  return String(value || '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+    .trim()
+    .substring(0, MAX_NAME_LENGTH);
+}
+
+function generateToken() {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  let token = '';
+  for (let i = 0; i < bytes.length; i++) {
+    token += bytes[i].toString(16).padStart(2, '0');
+  }
+  return token;
+}
+
+function bytesToBase64Url(bytes) {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64UrlToBytes(value) {
+  const padded = value.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((value.length + 3) % 4);
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function resultPayload(result) {
+  return JSON.stringify({
+    id: result.id,
+    studentName: result.studentName,
+    score: result.score,
+    total: result.total,
+    completedAt: result.completedAt,
+  });
+}
+
+async function signResult(secret, payload) {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  return bytesToBase64Url(new Uint8Array(signature));
+}
+
+async function verifyResultSignature(secret, payload, encodedSignature) {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['verify']
+  );
+  return crypto.subtle.verify(
+    'HMAC',
+    key,
+    base64UrlToBytes(encodedSignature),
+    new TextEncoder().encode(payload)
+  );
+}
+
+function rateLimitKey(prefix, ip) {
+  return prefix + ':' + ip;
+}
+
+async function checkRateLimit(env, prefix, ip) {
+  if (!env.EMAIL_RATE_KV) return null;
+  const key = rateLimitKey(prefix, ip);
+  const now = Date.now();
+  let record = await env.EMAIL_RATE_KV.get(key, { type: 'json' });
+  if (record && now - record.windowStart < RATE_LIMIT_WINDOW_MS) {
+    if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
+      return jsonError('Too many requests. Please try again later.', 429);
+    }
+    record.count += 1;
+  } else {
+    record = { windowStart: now, count: 1 };
+  }
+  await env.EMAIL_RATE_KV.put(key, JSON.stringify(record), {
+    expirationTtl: Math.ceil(RATE_LIMIT_WINDOW_MS / 1000),
+  });
+  return null;
+}
+
+async function readJson(request) {
+  const contentLength = Number(request.headers.get('content-length') || 0);
+  if (contentLength > MAX_REQUEST_BYTES) {
+    throw new Error('Request body is too large.');
+  }
+  const body = await request.json();
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw new Error('Request body must be an object.');
+  }
+  return body;
+}
+
+async function handleCreateResult(request, env) {
+  if (!env.QUIZ_SESSION_KV) return jsonError('Result storage not configured.', 503);
+  if (!env.RESULT_SIGNING_SECRET) return jsonError('Result verification is not configured on the server.', 503);
+
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  const rateLimitError = await checkRateLimit(env, RESULT_RATE_LIMIT_KEY, ip);
+  if (rateLimitError) return rateLimitError;
+
+  let body;
+  try {
+    body = await readJson(request);
+  } catch (error) {
+    return jsonError(error.message || 'Invalid JSON.', 400);
+  }
+
+  const studentName = sanitizeName(body.studentName) || 'Student';
+  const answers = body.answers;
+  if (!Array.isArray(answers) || answers.length !== EXPECTED_QUESTION_COUNT) {
+    return jsonError('All quiz answers are required.', 400);
+  }
+
+  let score = 0;
+  for (let i = 0; i < CORRECT_ANSWERS.length; i++) {
+    const answer = answers[i];
+    if (!answer || answer.questionIndex !== i || !Number.isInteger(answer.answerIndex) || answer.answerIndex < 0 || answer.answerIndex >= MAX_OPTIONS_PER_QUESTION) {
+      return jsonError('Invalid quiz answers.', 400);
+    }
+    if (answer.answerIndex === CORRECT_ANSWERS[i].correctIndex) score++;
+  }
+
+  const result = {
+    id: 'GLY-' + generateToken().toUpperCase().slice(0, 10),
+    studentName: studentName,
+    score: score,
+    total: EXPECTED_QUESTION_COUNT,
+    completedAt: new Date().toISOString(),
+  };
+  result.signature = await signResult(env.RESULT_SIGNING_SECRET, resultPayload(result));
+  result.answers = answers.map(function (answer, index) {
+    return {
+      questionIndex: index,
+      answerIndex: answer.answerIndex,
+      isCorrect: answer.answerIndex === CORRECT_ANSWERS[index].correctIndex,
+    };
+  });
+
+  await env.QUIZ_SESSION_KV.put(RESULT_PREFIX + result.id, JSON.stringify(result), {
+    expirationTtl: RESULT_TTL_SECONDS,
+  });
+
+  return jsonSuccess({
+    resultId: result.id,
+    verificationCode: result.id,
+    score: result.score,
+    total: result.total,
+    completedAt: result.completedAt,
+    verifyUrl: new URL('/verify.html?code=' + encodeURIComponent(result.id), request.url).toString(),
+  });
+}
+
+async function handleVerifyResult(request, url, env) {
+  if (!env.QUIZ_SESSION_KV) return jsonError('Result storage not configured.', 503);
+  if (!env.RESULT_SIGNING_SECRET) return jsonError('Result verification is not configured on the server.', 503);
+
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  const rateLimitError = await checkRateLimit(env, VERIFY_RATE_LIMIT_KEY, ip);
+  if (rateLimitError) return rateLimitError;
+
+  const code = (url.searchParams.get('code') || '').trim().toUpperCase();
+  if (!/^GLY-[A-Z0-9]{10}$/.test(code)) return jsonError('Invalid verification code.', 400);
+
+  const result = await env.QUIZ_SESSION_KV.get(RESULT_PREFIX + code, { type: 'json' });
+  if (!result || !result.signature) return jsonError('Result not found or expired.', 404);
+
+  let signatureIsValid = false;
+  try {
+    signatureIsValid = await verifyResultSignature(env.RESULT_SIGNING_SECRET, resultPayload(result), result.signature);
+  } catch (error) {
+    signatureIsValid = false;
+  }
+  if (!signatureIsValid) return jsonError('Result signature is invalid.', 409);
+
+  return jsonSuccess({
+    valid: true,
+    resultId: result.id,
+    studentName: result.studentName,
+    score: result.score,
+    total: result.total,
+    completedAt: result.completedAt,
   });
 }
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    const pathname = url.pathname;
-
-    // ── CORS preflight ──
-    if (request.method === 'OPTIONS') {
-      if (pathname === '/api/send-email') {
-        return new Response(null, { status: 204, headers: CORS_HEADERS });
-      }
-      // Let static asset handler deal with OPTIONS for non-API routes
+    if (url.pathname === '/api/create-result' && request.method === 'POST') {
+      return handleCreateResult(request, env);
     }
-
-    // ── Email API ──
-    if (pathname === '/api/send-email') {
-      return handleSendEmail(request, env);
+    if (url.pathname === '/api/verify-result' && request.method === 'GET') {
+      return handleVerifyResult(request, url, env);
     }
-
-    // ── All other requests → static assets ──
     return env.ASSETS.fetch(request);
   },
 };
-
-/**
- * Handle POST /api/send-email
- */
-async function handleSendEmail(request, env) {
-  // Only POST allowed
-  if (request.method !== 'POST') {
-    return jsonError('Method not allowed', 405);
-  }
-
-  // Check that RESEND_API_KEY is configured
-  if (!env.RESEND_API_KEY) {
-    return jsonError('Email service not configured on the server.', 503);
-  }
-
-  // ── Parse request body (once) ──
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return jsonError('Invalid JSON', 400);
-  }
-
-  // ── Turnstile verification (optional — manual setup required) ──
-  // If TURNSTILE_SECRET is set, verify the Turnstile token before proceeding.
-  // To enable: set TURNSTILE_SECRET via `wrangler secret put TURNSTILE_SECRET`
-  // and add a Turnstile widget to the frontend form.
-  if (env.TURNSTILE_SECRET) {
-    const token = body.turnstileToken;
-    if (!token) {
-      return jsonError('Turnstile verification required.', 403);
-    }
-    const turnstileRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        secret: env.TURNSTILE_SECRET,
-        response: token,
-      }),
-    });
-    const turnstileData = await turnstileRes.json();
-    if (!turnstileData.success) {
-      return jsonError('Turnstile verification failed.', 403);
-    }
-  }
-
-  const { teacherName, teacherEmail, studentName, subject, message } = body;
-
-  // ── Validate required fields ──
-  if (!teacherName || !teacherEmail || !studentName || !subject || !message) {
-    return jsonError('All fields are required: teacherName, teacherEmail, studentName, subject, message.', 400);
-  }
-
-  // ── Sanitize inputs ──
-  const safeTeacherName = sanitize(teacherName, MAX_NAME_LENGTH);
-  const safeTeacherEmail = sanitize(teacherEmail, MAX_EMAIL_LENGTH);
-  const safeStudentName = sanitize(studentName, MAX_NAME_LENGTH);
-  const safeSubject = sanitize(subject, MAX_SUBJECT_LENGTH);
-  const safeMessage = sanitize(message, MAX_MESSAGE_LENGTH);
-
-  // ── Validate teacher email ──
-  if (!isValidEmail(safeTeacherEmail)) {
-    return jsonError('Invalid teacher email address.', 400);
-  }
-
-  // ── Verify required fields are not empty after sanitization ──
-  if (!safeTeacherName || !safeStudentName || !safeSubject || !safeMessage) {
-    return jsonError('All fields are required.', 400);
-  }
-
-  // ── Send email via Resend API ──
-  try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: env.SEND_FROM || 'Glycolysis Interactive <onboarding@resend.dev>',
-        to: [safeTeacherEmail],
-        subject: safeSubject,
-        text: safeMessage,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      console.error('Resend API error:', res.status, data);
-      return jsonError(data.message || 'Email service error.', 502);
-    }
-
-    return jsonSuccess({ success: true, id: data.id });
-  } catch (err) {
-    console.error('Failed to call Resend API:', err.message);
-    return jsonError('Failed to send email. Please try again later.', 500);
-  }
-}
