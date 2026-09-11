@@ -44,7 +44,7 @@ The Worker serves `public/` and exposes:
 
 ## Result Flow
 
-1. The student completes the five-question story quiz.
+1. The student completes the ten-question story quiz.
 2. The browser sends the selected answer indexes and student name to `/api/create-result`.
 3. The Worker calculates the score from its canonical answer key.
 4. The Worker signs and stores a result record in `QUIZ_SESSION_KV` for one year.

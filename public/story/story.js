@@ -44,6 +44,15 @@
 
   var QUESTIONS = window.GLYCOLYSIS_QUESTIONS || [];
 
+  function shuffleArray(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+  }
+
   function wait(ms) {
     return new Promise(function (resolve) {
       var remaining = ms;
@@ -1287,7 +1296,9 @@
   function renderSingleQuestion(q) {
     el.quizOptions.setAttribute('role', 'radiogroup');
     el.quizOptions.setAttribute('aria-label', q.question);
-    q.options.forEach(function (opt, i) {
+    var shuffled = q.options.slice();
+    shuffleArray(shuffled);
+    shuffled.forEach(function (opt, i) {
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'quiz-option';
@@ -1342,7 +1353,9 @@
     el.quizOptions.setAttribute('role', 'group');
     el.quizOptions.setAttribute('aria-label', q.question + '. Select all that apply.');
     var selected = [];
-    q.options.forEach(function (opt, i) {
+    var shuffled = q.options.slice();
+    shuffleArray(shuffled);
+    shuffled.forEach(function (opt, i) {
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'quiz-option quiz-option-multi';
