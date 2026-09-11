@@ -13,6 +13,14 @@
 </head>
 <body>
   <a href="#mainContent" class="skip-link">Skip to main content</a>
+  <div id="storyViewerGate" class="story-viewer-gate" hidden>
+    <div class="story-viewer-gate-card" role="dialog" aria-modal="true" aria-labelledby="storyViewerGateTitle">
+      <p class="story-viewer-gate-label">INTERACTIVE 3D STORY</p>
+      <h1 id="storyViewerGateTitle">This experience may run less smoothly on tablets and desktop browsers.</h1>
+      <p>For the smoothest experience, use a desktop computer. You can continue into the story or return home without loading the molecular viewer.</p>
+      <div class="story-viewer-gate-actions"><button class="story-viewer-gate-btn story-viewer-gate-btn-primary" id="storyViewerContinue" type="button">CONTINUE ANYWAY</button><button class="story-viewer-gate-btn" id="storyViewerBack" type="button">GO BACK HOME</button></div>
+    </div>
+  </div>
   <div id="srLive" class="sr-only" aria-live="polite" aria-atomic="true" role="status"></div>
   <div id="srMolDesc" class="sr-only" role="img"></div>
   <div id="loadingScreen" role="status" aria-live="polite" aria-label="Loading documentary">
@@ -51,8 +59,8 @@
     <button class="vtb" id="btnReset" aria-label="Reset camera view" title="Reset camera"><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v4M12 16v4M4 12h4M16 12h4"/></svg><span>RESET</span></button>
   </div>
   <div id="deepDetail" aria-hidden="true">
-    <div id="deepDetailLabel">DEEPER DETAIL</div>
-    <div id="deepDetailText"></div>
+    <button id="deepDetailToggle" type="button" aria-expanded="false" aria-controls="deepDetailText"><span id="deepDetailLabel">DEEPER DETAIL</span><span aria-hidden="true">+</span></button>
+    <div id="deepDetailText" hidden></div>
   </div>
   <div id="caption" aria-hidden="true"><div id="captionText"></div></div>
   <div id="sceneControls" role="toolbar" aria-label="Scene playback controls">

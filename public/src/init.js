@@ -29,6 +29,55 @@
   var rendererPromise = null;
   var initializationPromise = null;
 
+  function setupFloatingScrollbar() {
+    var scrollbar = document.getElementById('floatingScrollbar');
+    var thumb = document.getElementById('floatingScrollbarThumb');
+    if (!scrollbar || !thumb) return;
+    var isMobileProgress = window.matchMedia('(max-width: 768px)').matches;
+    var dragging = false;
+    function scrollFromPointer(clientX, clientY) {
+      var rect = scrollbar.getBoundingClientRect();
+      var position = isMobileProgress ? clientX - rect.left : clientY - rect.top;
+      var length = isMobileProgress ? rect.width : rect.height;
+      var progress = length ? Math.max(0, Math.min(position / length, 1)) : 0;
+      window.scrollTo({ top: progress * Math.max(document.documentElement.scrollHeight - window.innerHeight, 0), behavior: 'auto' });
+      update();
+    }
+    scrollbar.addEventListener('pointerdown', function (event) {
+      dragging = true;
+      scrollbar.setPointerCapture(event.pointerId);
+      scrollFromPointer(event.clientX, event.clientY);
+    });
+    scrollbar.addEventListener('pointermove', function (event) {
+      if (dragging) scrollFromPointer(event.clientX, event.clientY);
+    });
+    scrollbar.addEventListener('pointerup', function () { dragging = false; });
+    scrollbar.addEventListener('pointercancel', function () { dragging = false; });
+    scrollbar.addEventListener('keydown', function (event) {
+      var step = window.innerHeight * 0.1;
+      if (event.key === 'ArrowDown' || event.key === 'ArrowRight') window.scrollBy({ top: step, behavior: 'smooth' });
+      else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') window.scrollBy({ top: -step, behavior: 'smooth' });
+      else if (event.key === 'PageDown') window.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
+      else if (event.key === 'PageUp') window.scrollBy({ top: -window.innerHeight, behavior: 'smooth' });
+      else return;
+      event.preventDefault();
+    });
+    function update() {
+      var scrollHeight = document.documentElement.scrollHeight;
+      var scrollable = Math.max(scrollHeight - window.innerHeight, 0);
+      var progress = scrollable ? Math.min((window.scrollY || window.pageYOffset) / scrollable, 1) : 0;
+      scrollbar.setAttribute('aria-valuenow', String(Math.round(progress * 100)));
+      if (isMobileProgress) {
+        thumb.style.clipPath = 'inset(0 ' + ((1 - progress) * 100) + '% 0 0)';
+      } else {
+        thumb.style.clipPath = 'inset(0 0 ' + ((1 - progress) * 100) + '% 0)';
+      }
+    }
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  }
+
   function loadRenderer() {
     if (rendererPromise) return rendererPromise;
     if (typeof $3Dmol !== 'undefined') return Promise.resolve();
@@ -83,6 +132,8 @@
   } else {
     showViewer();
   }
+
+  setupFloatingScrollbar();
 
   moleculeList.forEach(function (mol) {
     var btn = document.createElement('button');

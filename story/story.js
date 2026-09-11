@@ -2,6 +2,8 @@
   'use strict';
 
   var BG = 0x090B0F;
+  var DEV_JUMP_ENABLED = true;
+  var DEV_MODE = DEV_JUMP_ENABLED && new URLSearchParams(window.location.search).get('dev') === '1';
   var PREFERS_REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var IS_MOBILE = window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -646,13 +648,19 @@
     'enzymeLabel', 'enzymeName', 'enzymeReaction', 'accounting', 'legend',
     'fadeOverlay', 'loadingIndicator', 'srLive', 'btnPrev', 'btnNext', 'btnStay', 'btnPause',
     'btnRotate', 'btnHydrogen', 'btnReset', 'viewerToolbar',
-    'navControls', 'narrationControls', 'btnNarration', 'btnHome', 'btnRestart', 'mobileToolsToggle', 'deepDetail', 'deepDetailText', 'overallEquation', 'molFallback', 'srMolDesc',
+    'navControls', 'narrationControls', 'btnNarration', 'btnHome', 'btnRestart', 'mobileToolsToggle', 'deepDetail', 'deepDetailToggle', 'deepDetailText', 'overallEquation', 'molFallback', 'srMolDesc',
     'quizOverlay', 'quizContainer', 'quizQuestionText', 'quizOptions', 'quizFeedback', 'quizFeedbackText',
     'quizContinue', 'quizProgress', 'quizProgressText',
     'resultsOverlay', 'resultsScore', 'resultsPercentage', 'resultsReview', 'resultsStoryBtn', 'resultsQuestionsBtn', 'resultsDownloadBtn', 'resultsEmailBtn', 'resultsHomeBtn', 'resultsRestartBtn', 'emailOverlay', 'emailForm', 'emailTeacherName', 'emailTeacherEmail', 'emailStudentName', 'emailSend', 'emailCancel', 'emailNote', 'emailError', 'downloadOverlay', 'downloadForm', 'downloadStudentName', 'downloadSubmit', 'downloadCancel', 'downloadError'
   ].forEach(function (id) {
     el[id] = document.getElementById(id);
   });
+
+  if (el.deepDetailToggle) {
+    el.deepDetailToggle.addEventListener('click', function () {
+      setDeepDetailOpen(el.deepDetailToggle.getAttribute('aria-expanded') !== 'true');
+    });
+  }
 
   function showUI(ids) {
     ids.forEach(function (id) {
@@ -664,6 +672,14 @@
     ids.forEach(function (id) {
       if (el[id]) el[id].classList.remove('visible');
     });
+  }
+
+  function setDeepDetailOpen(open) {
+    if (!el.deepDetailToggle || !el.deepDetailText) return;
+    el.deepDetailToggle.setAttribute('aria-expanded', String(open));
+    el.deepDetailText.hidden = !open;
+    el.deepDetail.classList.toggle('expanded', open);
+    el.deepDetailToggle.lastElementChild.textContent = open ? '-' : '+';
   }
 
   function pickNarratorVoice() {
@@ -898,11 +914,28 @@
 
   function showOverallEquation() {
     el.overallEquation.textContent = '';
-    el.overallEquation.textContent = 'Glucose + 2 NAD\u207A + 2 ADP + 2 P\u1D62 \u2192 2 Pyruvate + 2 NADH + 2 ATP + 2 H\u207A + 2 H\u2082O';
+    var toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'equation-toggle';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.innerHTML = '<span>OVERALL EQUATION</span><span aria-hidden="true">+</span>';
+    var body = document.createElement('div');
+    body.className = 'equation-body';
+    body.hidden = true;
+    body.textContent = 'Glucose + 2 NAD\u207A + 2 ADP + 2 P\u1D62 produces 2 Pyruvate + 2 NADH + 2 ATP + 2 H\u207A + 2 H\u2082O';
     var note = document.createElement('span');
     note.className = 'eq-note';
     note.textContent = 'Exact proton and water terms vary between biochemical conventions. The key net products are 2 pyruvate, 2 ATP, and 2 NADH per glucose.';
-    el.overallEquation.appendChild(note);
+    body.appendChild(note);
+    toggle.addEventListener('click', function () {
+      var open = toggle.getAttribute('aria-expanded') !== 'true';
+      toggle.setAttribute('aria-expanded', String(open));
+      body.hidden = !open;
+      toggle.lastElementChild.textContent = open ? '-' : '+';
+      el.overallEquation.classList.toggle('expanded', open);
+    });
+    el.overallEquation.appendChild(toggle);
+    el.overallEquation.appendChild(body);
     el.overallEquation.classList.add('visible');
   }
 
@@ -1160,6 +1193,44 @@
     });
   }
 
+  function setupDeveloperJump() {
+    if (!DEV_MODE) return;
+    var panel = document.createElement('aside');
+    panel.className = 'developer-jump';
+    panel.setAttribute('aria-label', 'Developer jump tools');
+    var title = document.createElement('strong');
+    title.textContent = 'DEV JUMP';
+    panel.appendChild(title);
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'developer-jump-close';
+    close.textContent = 'x';
+    close.setAttribute('aria-label', 'Close developer jump tools');
+    close.addEventListener('click', function () { panel.remove(); });
+    panel.appendChild(close);
+    var sceneLabel = document.createElement('span');
+    sceneLabel.textContent = 'SCENES';
+    panel.appendChild(sceneLabel);
+    scenes.forEach(function (scene, index) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = String(index + 1) + ' ' + (scene.title || 'Scene ' + (index + 1));
+      button.addEventListener('click', function () { transitionToScene(index, true); });
+      panel.appendChild(button);
+    });
+    var questionLabel = document.createElement('span');
+    questionLabel.textContent = 'QUESTIONS';
+    panel.appendChild(questionLabel);
+    QUESTIONS.forEach(function (question, index) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = 'Q' + String(index + 1);
+      button.addEventListener('click', function () { showQuiz(question.id); });
+      panel.appendChild(button);
+    });
+    document.body.appendChild(panel);
+  }
+
   function playFeedbackSound(correct) {
     try {
       var ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1182,7 +1253,7 @@
 
   function showFeedback(isCorrect, explanation, resolve, btnText) {
     playFeedbackSound(isCorrect);
-    el.quizFeedbackText.textContent = (isCorrect ? '\u2713 Correct. ' : '\u2717 Not quite. ') + explanation;
+    el.quizFeedbackText.textContent = (isCorrect ? 'Correct. ' : 'Not quite. ') + explanation;
     el.quizContainer.classList.add('submitted');
     el.quizFeedback.classList.add('show');
     el.quizContinue.classList.remove('visible');
@@ -1271,7 +1342,6 @@
       btn.setAttribute('tabindex', i === 0 ? '0' : '-1');
       var checkSpan = document.createElement('span');
       checkSpan.className = 'quiz-option-check';
-      checkSpan.textContent = '\u2610';
       var textSpan = document.createElement('span');
       textSpan.className = 'quiz-option-text';
       textSpan.textContent = opt.text;
@@ -1280,8 +1350,8 @@
       btn.addEventListener('click', function () {
         if (quizLocked[q.id]) return;
         var idx = selected.indexOf(opt.id);
-        if (idx === -1) { selected.push(opt.id); btn.setAttribute('aria-checked', 'true'); btn.classList.add('selected'); checkSpan.textContent = '\u2611'; }
-        else { selected.splice(idx, 1); btn.setAttribute('aria-checked', 'false'); btn.classList.remove('selected'); checkSpan.textContent = '\u2610'; }
+        if (idx === -1) { selected.push(opt.id); btn.setAttribute('aria-checked', 'true'); btn.classList.add('selected'); }
+        else { selected.splice(idx, 1); btn.setAttribute('aria-checked', 'false'); btn.classList.remove('selected'); }
         quizAnswers[q.id] = selected.slice();
         el.quizContinue.classList.toggle('visible', selected.length > 0);
         el.srLive.textContent = selected.length + ' option' + (selected.length !== 1 ? 's' : '') + ' selected';
@@ -1305,6 +1375,7 @@
   function renderMatchingQuestion(q) {
     el.quizOptions.setAttribute('role', 'group');
     el.quizOptions.setAttribute('aria-label', q.question);
+    el.quizOptions.classList.add('matching-options');
     var matches = {};
 
     q.pairs.forEach(function (p) {
@@ -1315,9 +1386,9 @@
       label.className = 'match-row-label';
       label.textContent = p.left;
 
-      var arrow = document.createElement('span');
-      arrow.className = 'match-row-arrow';
-      arrow.textContent = '\u2192';
+      var spacer = document.createElement('span');
+      spacer.className = 'match-row-spacer';
+      spacer.setAttribute('aria-hidden', 'true');
 
       var select = document.createElement('select');
       select.className = 'match-select';
@@ -1356,10 +1427,22 @@
       });
 
       row.appendChild(label);
-      row.appendChild(arrow);
+      row.appendChild(spacer);
       row.appendChild(select);
       el.quizOptions.appendChild(row);
     });
+
+    var widestLabel = 0;
+    var measureLabel = document.createElement('span');
+    var labelStyle = getComputedStyle(el.quizOptions.querySelector('.match-row-label'));
+    measureLabel.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:max-content;white-space:nowrap;visibility:hidden;font-family:' + labelStyle.fontFamily + ';font-size:' + labelStyle.fontSize + ';font-weight:' + labelStyle.fontWeight + ';letter-spacing:' + labelStyle.letterSpacing + ';';
+    document.body.appendChild(measureLabel);
+    q.pairs.forEach(function (pair) {
+      measureLabel.textContent = pair.left;
+      widestLabel = Math.max(widestLabel, measureLabel.offsetWidth);
+    });
+    measureLabel.remove();
+    el.quizOptions.style.setProperty('--match-label-width', widestLabel + 'px');
   }
 
   var wrapUpActive = false;
@@ -1450,13 +1533,13 @@
           var isMatchCorrect = matchedRight === p.rightId;
           if (!isMatchCorrect) wasCorrect = false;
           matchDiv.className = 'results-q-user ' + (isMatchCorrect ? 'correct' : 'incorrect');
-          matchDiv.textContent = p.left + ' \u2192 ' + (rightOpt ? rightOpt.text : 'Not matched') + (isMatchCorrect ? ' \u2713' : ' \u2717');
+          matchDiv.textContent = p.left + ' : ' + (rightOpt ? rightOpt.text : 'Not matched');
           answerRow.appendChild(matchDiv);
         });
         if (!wasCorrect) {
           var correctDiv3 = document.createElement('div');
           correctDiv3.className = 'results-q-correct';
-          var correctMatches = q.pairs.map(function (p) { return p.left + ' \u2192 ' + p.right; }).join('; ');
+          var correctMatches = q.pairs.map(function (p) { return p.left + ' : ' + p.right; }).join('; ');
           correctDiv3.textContent = 'Correct matches: ' + correctMatches;
           answerRow.appendChild(correctDiv3);
         }
@@ -1796,7 +1879,7 @@
         var matches = userAnswer || {};
         var matchTexts = q.pairs.map(function (p) {
           var rightOpt = q.pairs.find(function (x) { return x.id === matches[p.leftId]; });
-          return p.left + ' \u2192 ' + (rightOpt ? rightOpt.text : 'Not matched');
+          return p.left + ' : ' + (rightOpt ? rightOpt.text : 'Not matched');
         });
         answerText = matchTexts.join('; ');
         isCorrect = q.pairs.every(function (p) { return matches[p.leftId] === p.rightId; });
@@ -2225,7 +2308,7 @@
           var isMatchCorrect = matches[p.leftId] === p.rightId;
           var matchDiv = document.createElement('div');
           matchDiv.className = 'quiz-review-ans ' + (isMatchCorrect ? 'correct' : 'incorrect');
-          matchDiv.textContent = p.left + ' \u2192 ' + (rightOpt ? rightOpt.text : 'Not matched');
+          matchDiv.textContent = p.left + ' : ' + (rightOpt ? rightOpt.text : 'Not matched');
               item.appendChild(matchDiv);
             });
           }
@@ -2378,6 +2461,19 @@
   }
 
   async function init() {
+    var gate = document.getElementById('storyViewerGate');
+    if (window.innerWidth <= 1024 && gate && !DEV_MODE) {
+      gate.hidden = false;
+      await new Promise(function (resolve) {
+        document.getElementById('storyViewerContinue').addEventListener('click', function () {
+          gate.hidden = true;
+          resolve();
+        }, { once: true });
+        document.getElementById('storyViewerBack').addEventListener('click', function () {
+          window.location.href = '../index.html';
+        }, { once: true });
+      });
+    }
     resizeAtmosphere();
     window.addEventListener('resize', resizeAtmosphere);
     initParticles();
@@ -2385,10 +2481,11 @@
     if (!viewer) await ensureViewer();
     setupControls();
     setupNarrationControls();
+    setupDeveloperJump();
     setupScrollbar();
     preload(['glucose', 'atp', 'adp', 'g6p', 'fbp', 'dhap', 'g3p']);
     await wait(800);
-    await showStartWarning();
+    if (!DEV_MODE) await showStartWarning();
     storyStarted = true;
     transitionToScene(0, true);
   }
