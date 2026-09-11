@@ -1905,6 +1905,8 @@
   async function transitionToScene(index, immediate) {
     if (quizActive) return;
     if (el.quizOverlay && el.quizOverlay.classList.contains('visible')) return;
+    var currentScene = currentSceneIndex >= 0 ? scenes[currentSceneIndex] : null;
+    if (currentScene && currentScene.quiz && !quizLocked[currentScene.quiz]) return;
     if (transitioning && !immediate) return;
     if (index < 0 || index >= scenes.length) return;
     if (index === currentSceneIndex && !immediate) return;
