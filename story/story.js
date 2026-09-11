@@ -922,7 +922,7 @@
     var body = document.createElement('div');
     body.className = 'equation-body';
     body.hidden = true;
-    body.textContent = 'Glucose + 2 NAD\u207A + 2 ADP + 2 P\u1D62 produces 2 Pyruvate + 2 NADH + 2 ATP + 2 H\u207A + 2 H\u2082O';
+    body.innerHTML = '<div class="equation-formula" tabindex="0"><span>Glucose + 2 NAD<sup>+</sup> + 2 ADP + 2 P<sub>i</sub></span><span class="equation-yields">yields</span><span>2 Pyruvate + 2 NADH + 2 ATP + 2 H<sup>+</sup> + 2 H<sub>2</sub>O</span></div>';
     var note = document.createElement('span');
     note.className = 'eq-note';
     note.textContent = 'Exact proton and water terms vary between biochemical conventions. The key net products are 2 pyruvate, 2 ATP, and 2 NADH per glucose.';
@@ -1198,23 +1198,28 @@
     var panel = document.createElement('aside');
     panel.className = 'developer-jump';
     panel.setAttribute('aria-label', 'Developer jump tools');
+    var handle = document.createElement('button');
+    handle.type = 'button';
+    handle.className = 'developer-jump-handle';
+    handle.setAttribute('aria-expanded', 'false');
+    handle.setAttribute('aria-label', 'Expand developer tools');
+    handle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
+    handle.addEventListener('click', function () {
+      var open = panel.classList.toggle('open');
+      document.body.classList.toggle('developer-tools-open', open);
+      handle.setAttribute('aria-expanded', String(open));
+      handle.setAttribute('aria-label', open ? 'Collapse developer tools' : 'Expand developer tools');
+    });
     var title = document.createElement('strong');
-    title.textContent = 'DEV JUMP';
+    title.textContent = 'DEVELOPER TOOLS';
     panel.appendChild(title);
-    var close = document.createElement('button');
-    close.type = 'button';
-    close.className = 'developer-jump-close';
-    close.textContent = 'x';
-    close.setAttribute('aria-label', 'Close developer jump tools');
-    close.addEventListener('click', function () { panel.remove(); });
-    panel.appendChild(close);
     var sceneLabel = document.createElement('span');
     sceneLabel.textContent = 'SCENES';
     panel.appendChild(sceneLabel);
     scenes.forEach(function (scene, index) {
       var button = document.createElement('button');
       button.type = 'button';
-      button.textContent = String(index + 1) + ' ' + (scene.title || 'Scene ' + (index + 1));
+      button.textContent = scene.title || 'Scene ' + (index + 1);
       button.addEventListener('click', function () { transitionToScene(index, true); });
       panel.appendChild(button);
     });
@@ -1229,6 +1234,7 @@
       panel.appendChild(button);
     });
     document.body.appendChild(panel);
+    document.body.appendChild(handle);
   }
 
   function playFeedbackSound(correct) {
@@ -1253,7 +1259,12 @@
 
   function showFeedback(isCorrect, explanation, resolve, btnText) {
     playFeedbackSound(isCorrect);
-    el.quizFeedbackText.textContent = (isCorrect ? 'Correct. ' : 'Not quite. ') + explanation;
+    el.quizFeedbackText.textContent = '';
+    var status = document.createElement('strong');
+    status.className = 'quiz-feedback-status ' + (isCorrect ? 'correct' : 'incorrect');
+    status.textContent = isCorrect ? 'Correct.' : 'Not quite.';
+    el.quizFeedbackText.appendChild(status);
+    el.quizFeedbackText.appendChild(document.createTextNode(' ' + explanation));
     el.quizContainer.classList.add('submitted');
     el.quizFeedback.classList.add('show');
     el.quizContinue.classList.remove('visible');

@@ -223,10 +223,12 @@ button:focus-visible {
   position: fixed;
   top: 28px;
   left: 32px;
-  z-index: 20;
-  font-family: var(--display);
+  top: 112px;
+  left: 0;
   font-size: 11px;
   font-weight: 500;
+  transform: translateX(calc(-100% + 38px));
+  transition: transform .25s var(--ease);
   letter-spacing: 2.5px;
   text-transform: uppercase;
   color: var(--accent);
@@ -375,8 +377,9 @@ button:focus-visible {
 
 #overallEquation {
   position: fixed;
-  bottom: 178px;
-  left: 32px;
+  bottom: 226px;
+  right: 32px;
+  left: auto;
   width: min(320px, calc(100vw - 64px));
   z-index: 20;
   opacity: 0;
@@ -398,6 +401,9 @@ button:focus-visible {
 .equation-toggle > span:last-child { color: var(--accent); font-size: 17px; letter-spacing: 0; }
 .equation-toggle:hover, .equation-toggle[aria-expanded="true"] { background: rgba(255,255,255,.05); }
 .equation-body { padding: 0 12px 12px; font: 12px/1.6 var(--font); color: var(--muted); letter-spacing: .2px; }
+.equation-formula { display: flex; align-items: baseline; gap: 10px; width: max-content; min-width: 100%; white-space: nowrap; padding-bottom: 2px; overflow-x: auto; scrollbar-width: thin; color: var(--text); font-size: 13px; font-weight: 500; }
+.equation-formula:focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; }
+.equation-yields { color: var(--accent); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
 
 #overallEquation .eq-note {
   display: block;
@@ -1285,8 +1291,9 @@ button:focus-visible {
   }
 
   #overallEquation {
-    left: 16px;
-    bottom: calc(178px + env(safe-area-inset-bottom));
+    right: 16px;
+    left: auto;
+    bottom: calc(150px + env(safe-area-inset-bottom));
     width: calc(100vw - 32px);
   }
 }
@@ -1339,8 +1346,9 @@ button:focus-visible {
   }
 
   #overallEquation {
-    bottom: calc(170px + env(safe-area-inset-bottom));
-    left: 24px;
+    bottom: calc(210px + env(safe-area-inset-bottom));
+    right: 24px;
+    left: auto;
     width: min(300px, calc(100vw - 48px));
     max-width: min(520px, calc(100vw - 360px));
   }
@@ -1644,31 +1652,41 @@ button:focus-visible {
   line-height: 1.6;
   margin-bottom: 20px;
 }
+.quiz-feedback-status.correct {
+  color: var(--accent);
+}
+.quiz-feedback-status.incorrect {
+  color: #e8593c;
+}
 
 .quiz-continue-btn {
   display: inline-block;
   padding: 12px 24px;
-  border: 1px solid rgba(215,255,95,.4);
+  border: 1px solid rgba(255,255,255,.12);
   border-radius: 6px;
-  background: rgba(215,255,95,.08);
-  color: var(--accent);
+  background: rgba(255,255,255,.04);
+  color: var(--faint);
   font-family: var(--display);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 1px;
-  cursor: pointer;
+  cursor: not-allowed;
   transition: all .2s var(--ease);
   min-height: 44px;
-  opacity: 1;
+  opacity: .45;
   pointer-events: none;
 }
 
 .quiz-continue-btn.visible {
+  border-color: rgba(215,255,95,.4);
+  background: rgba(215,255,95,.08);
+  color: var(--accent);
+  cursor: pointer;
   opacity: 1;
   pointer-events: all;
 }
 
-.quiz-continue-btn:hover {
+.quiz-continue-btn.visible:hover {
   background: rgba(215,255,95,.15);
   border-color: rgba(215,255,95,.6);
 }
@@ -2226,5 +2244,15 @@ button:focus-visible {
   margin-top: 8px;
   color: #ff6b6b;
   font-size: 12px;
-  #viewerToolbar .vtb { min-width: 0; padding-left: 8px; padding-right: 8px; }
 }
+
+.developer-jump { position: fixed; top: 112px; left: 0; z-index: 10001; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: min(360px, calc(100vw - 32px)); max-height: calc(100vh - 112px); overflow: auto; padding: 16px; border: 1px solid rgba(215,255,95,.3); border-radius: 0 10px 10px 0; background: rgba(9,11,15,.97); box-shadow: 0 10px 30px rgba(0,0,0,.35); font: 12px var(--display); transform: translateX(calc(-100% + 38px)); transition: transform .25s var(--ease); }
+.developer-jump.open { transform: translateX(0); }
+.developer-jump strong, .developer-jump > span { grid-column: 1 / -1; color: var(--accent); letter-spacing: 1.8px; }
+.developer-jump strong { padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,.1); font-size: 13px; }
+.developer-jump button { min-height: 36px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; color: var(--muted); text-align: left; font: 12px/1.25 var(--display); }
+.developer-jump button:hover { color: var(--text); border-color: rgba(215,255,95,.35); }
+.developer-jump-handle { position: fixed; top: 112px; left: 0; z-index: 10002; width: 38px; height: 42px; display: grid; place-items: center; border: 1px solid rgba(215,255,95,.35); border-left: 0; border-radius: 0 7px 7px 0; background: rgba(9,11,15,.94); color: var(--accent); }
+.developer-jump-handle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s var(--ease); }
+.developer-tools-open .developer-jump-handle { left: min(360px, calc(100vw - 32px)); }
+.developer-tools-open .developer-jump-handle svg { transform: rotate(180deg); }
