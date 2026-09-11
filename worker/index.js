@@ -11,15 +11,19 @@ const RATE_LIMIT_WINDOW_MS = 60000;
 const RATE_LIMIT_MAX_REQUESTS = 5;
 const MAX_NAME_LENGTH = 200;
 const MAX_REQUEST_BYTES = 10000;
-const MAX_OPTIONS_PER_QUESTION = 6;
-const EXPECTED_QUESTION_COUNT = 5;
+const EXPECTED_QUESTION_COUNT = 10;
 
 const CORRECT_ANSWERS = [
-  { correctIndex: 1 },
-  { correctIndex: 0 },
-  { correctIndex: 1 },
-  { correctIndex: 0 },
-  { correctIndex: 2 },
+  { type: 'single', correctId: 'q1_b' },
+  { type: 'single', correctId: 'q2_b' },
+  { type: 'single', correctId: 'q3_a' },
+  { type: 'single', correctId: 'q4_b' },
+  { type: 'single', correctId: 'q5_b' },
+  { type: 'single', correctId: 'q6_a' },
+  { type: 'single', correctId: 'q7_c' },
+  { type: 'single', correctId: 'q8_c' },
+  { type: 'multi', correctIds: ['q9_a', 'q9_b', 'q9_c'] },
+  { type: 'matching', correctMatches: { 'q10_l1': 'q10_r1', 'q10_l2': 'q10_r2', 'q10_l3': 'q10_r3', 'q10_l4': 'q10_r4' } }
 ];
 
 function jsonError(message, status) {
@@ -140,6 +144,32 @@ async function readJson(request) {
   return body;
 }
 
+function gradeAnswer(answer, correct) {
+  if (correct.type === 'single') {
+    if (!answer || typeof answer.answerIndex !== 'number' || answer.answerIndex < 0) return false;
+    const q = CORRECT_ANSWERS[answer.questionIndex];
+    if (!q || q.type !== 'single') return false;
+    const optId = answer.selectedId;
+    return optId === q.correctId;
+  }
+  if (correct.type === 'multi') {
+    if (!answer || !Array.isArray(answer.selectedIds)) return false;
+    const q = CORRECT_ANSWERS[answer.questionIndex];
+    if (!q || q.type !== 'multi') return false;
+    const sorted = answer.selectedIds.slice().sort();
+    const correctSorted = q.correctIds.slice().sort();
+    return sorted.length === correctSorted.length && sorted.every(function (v, i) { return v === correctSorted[i]; });
+  }
+  if (correct.type === 'matching') {
+    if (!answer || typeof answer.matches !== 'object') return false;
+    const q = CORRECT_ANSWERS[answer.questionIndex];
+    if (!q || q.type !== 'matching') return false;
+    const keys = Object.keys(q.correctMatches);
+    return keys.every(function (k) { return answer.matches[k] === q.correctMatches[k]; });
+  }
+  return false;
+}
+
 async function handleCreateResult(request, env) {
   if (!env.QUIZ_SESSION_KV) return jsonError('Result storage not configured.', 503);
   if (!env.RESULT_SIGNING_SECRET) return jsonError('Result verification is not configured on the server.', 503);
@@ -164,10 +194,10 @@ async function handleCreateResult(request, env) {
   let score = 0;
   for (let i = 0; i < CORRECT_ANSWERS.length; i++) {
     const answer = answers[i];
-    if (!answer || answer.questionIndex !== i || !Number.isInteger(answer.answerIndex) || answer.answerIndex < 0 || answer.answerIndex >= MAX_OPTIONS_PER_QUESTION) {
+    if (!answer || answer.questionIndex !== i) {
       return jsonError('Invalid quiz answers.', 400);
     }
-    if (answer.answerIndex === CORRECT_ANSWERS[i].correctIndex) score++;
+    if (gradeAnswer(answer, CORRECT_ANSWERS[i])) score++;
   }
 
   const result = {
@@ -179,10 +209,11 @@ async function handleCreateResult(request, env) {
   };
   result.signature = await signResult(env.RESULT_SIGNING_SECRET, resultPayload(result));
   result.answers = answers.map(function (answer, index) {
+    const isCorrect = gradeAnswer(answer, CORRECT_ANSWERS[index]);
     return {
       questionIndex: index,
-      answerIndex: answer.answerIndex,
-      isCorrect: answer.answerIndex === CORRECT_ANSWERS[index].correctIndex,
+      answerIndex: answer.answerIndex !== undefined ? answer.answerIndex : -1,
+      isCorrect: isCorrect,
     };
   });
 

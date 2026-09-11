@@ -34,7 +34,7 @@
   </div>
   <div id="navControls" role="toolbar" aria-label="Navigation controls">
     <button type="button" class="nar-btn" id="btnHome" aria-label="Back to home" title="Back to home"><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5M5.5 10v10h13V10M9.5 20v-6h5v6"/></svg><span>HOME</span></button>
-    <button type="button" class="nar-btn" id="btnRestart" aria-label="Restart story" title="Restart story"><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M4 11a8 8 0 1 1 2.3 5.7M4 5v6h6"/></svg><span>RESTART</span></button>
+    <button class="nar-btn" id="btnRestart" aria-label="Restart story" title="Restart story"><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M4 11a8 8 0 1 1 2.3 5.7M4 5v6h6"/></svg><span>RESTART</span></button>
   </div>
   <div id="narrationControls" role="toolbar" aria-label="Narration and playback controls">
     <button class="nar-btn" id="btnNarration" aria-pressed="true" aria-label="Toggle voice narration" title="Toggle narration (N)"><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M4 10v4h3l5 4V6l-5 4H4M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg><span>NARRATION</span></button>
@@ -89,9 +89,19 @@
       <div id="resultsScore" class="results-score"></div>
       <div id="resultsPercentage" class="results-pct"></div>
       <div id="resultsReview" class="results-review"></div>
+      <div class="results-detail-cards">
+        <div class="results-detail-card">
+          <div class="results-detail-label">CORRECT</div>
+          <div class="results-detail-value" id="resultsCorrectCount"></div>
+        </div>
+        <div class="results-detail-card">
+          <div class="results-detail-label">INCORRECT</div>
+          <div class="results-detail-value incorrect" id="resultsIncorrectCount"></div>
+        </div>
+      </div>
       <div class="results-actions">
-        <button type="button" id="resultsStoryBtn" class="results-btn">REVIEW STORY</button>
-        <button type="button" id="resultsQuestionsBtn" class="results-btn">REVIEW QUESTIONS</button>
+        <button type="button" id="resultsHomeBtn" class="results-btn">HOME</button>
+        <button type="button" id="resultsRestartBtn" class="results-btn">RESTART STORY</button>
         <button type="button" id="resultsDownloadBtn" class="results-btn">DOWNLOAD RESULTS</button>
         <button type="button" id="resultsEmailBtn" class="results-btn results-btn-accent">EMAIL RESULTS TO TEACHER</button>
       </div>
@@ -104,11 +114,11 @@
       <div id="emailError" class="email-error" role="alert"></div>
       <form id="emailForm" novalidate>
         <label class="email-label" for="emailTeacherName">Teacher name</label>
-        <input type="text" id="emailTeacherName" class="email-input" maxlength="200" autocomplete="off" aria-describedby="emailError" required>
+        <input type="text" id="emailTeacherName" class="email-input" maxlength="200" autocomplete="off" required>
         <label class="email-label" for="emailTeacherEmail">Teacher email</label>
-        <input type="email" id="emailTeacherEmail" class="email-input" maxlength="254" autocomplete="off" aria-describedby="emailError" required>
+        <input type="email" id="emailTeacherEmail" class="email-input" maxlength="254" autocomplete="off" required>
         <label class="email-label" for="emailStudentName">Your name</label>
-        <input type="text" id="emailStudentName" class="email-input" maxlength="200" autocomplete="off" aria-describedby="emailError" required>
+        <input type="text" id="emailStudentName" class="email-input" maxlength="200" autocomplete="off" required>
         <div class="email-actions">
           <button type="button" id="emailCancel" class="results-btn">CANCEL</button>
           <button type="button" id="emailSend" class="results-btn results-btn-accent">OPEN EMAIL APP</button>
