@@ -33,6 +33,9 @@
   var quizActive = false;
   var quizFinished = false;
 
+  var sessionToken = null;
+  var sessionStarted = false;
+
   var storyStarted = false;
   var tabChangeLog = [];
   var tabLeftAt = 0;
@@ -1112,6 +1115,9 @@
   function showQuiz(questionId) {
     var q = QUESTIONS.find(function (x) { return x.id === questionId; });
     if (!q) return Promise.resolve();
+    if (!sessionStarted) {
+      startQuizSession();
+    }
     quizActive = true;
     cancelCountdown();
     clearCaptions();
@@ -1147,6 +1153,7 @@
         if (q.type === 'single') {
           if (quizAnswers[q.id] === undefined) return;
           quizLocked[q.id] = true;
+          recordAnswerOnServer(q, { selectedId: quizAnswers[q.id] });
           var isCorrect = quizAnswers[q.id] === q.correctAnswer;
           if (isCorrect) quizScore++;
           quizCompleted++;
@@ -1162,6 +1169,7 @@
           var selected = quizAnswers[q.id] || [];
           if (selected.length === 0) return;
           quizLocked[q.id] = true;
+          recordAnswerOnServer(q, { selectedIds: quizAnswers[q.id] || [] });
           var correctSet = q.correctAnswers.slice().sort().join(',');
           var selectedSet = selected.slice().sort().join(',');
           var multiCorrect = correctSet === selectedSet;
@@ -1182,6 +1190,7 @@
           var allMatched = q.pairs.every(function (p) { return matches[p.leftId]; });
           if (!allMatched) return;
           quizLocked[q.id] = true;
+          recordAnswerOnServer(q, { matches: matches });
           var allCorrect = true;
           q.pairs.forEach(function (p) {
             if (matches[p.leftId] !== p.rightId) allCorrect = false;
@@ -1740,6 +1749,8 @@
     quizScore = 0;
     quizCompleted = 0;
     quizActive = false;
+    sessionToken = null;
+    sessionStarted = false;
     wrapUpActive = false;
     transitioning = false;
     autoAdvanceActive = true;
@@ -1844,6 +1855,45 @@
   }
 
   var RESULT_API = '/api/create-result';
+  var SESSION_START_API = '/api/start-session';
+  var RECORD_ANSWER_API = '/api/record-answer';
+
+  function startQuizSession() {
+    if (sessionStarted) return Promise.resolve();
+    sessionStarted = true;
+    return fetch(SESSION_START_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}'
+    }).then(function (res) {
+      return readApiResponse(res, 'Could not start quiz session.');
+    }).then(function (data) {
+      sessionToken = data.sessionToken;
+    }).catch(function () {
+      sessionToken = null;
+      sessionStarted = false;
+    });
+  }
+
+  function recordAnswerOnServer(q, answerData) {
+    if (!sessionToken) return Promise.resolve();
+    return fetch(RECORD_ANSWER_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionToken: sessionToken,
+        questionIndex: QUESTIONS.indexOf(q),
+        questionId: q.id,
+        type: q.type,
+        selectedId: answerData.selectedId,
+        selectedIds: answerData.selectedIds,
+        matches: answerData.matches
+      })
+    }).then(function (res) {
+      return readApiResponse(res, 'Could not record answer.');
+    }).catch(function () {
+    });
+  }
 
   function readApiResponse(res, fallbackMessage) {
     return res.text().then(function (text) {
@@ -1859,23 +1909,10 @@
   }
 
   function createVerifiedResult(studentName) {
-    var answers = QUESTIONS.map(function (q, index) {
-      if (q.type === 'single') {
-        var selectedIdx = q.options.findIndex(function (o) { return o.id === quizAnswers[q.id]; });
-        return { questionIndex: index, answerIndex: selectedIdx >= 0 ? selectedIdx : -1, questionId: q.id, type: 'single', selectedId: quizAnswers[q.id] || null };
-      } else if (q.type === 'multi') {
-        var selectedIds = quizAnswers[q.id] || [];
-        return { questionIndex: index, answerIndex: -1, questionId: q.id, type: 'multi', selectedIds: selectedIds };
-      } else if (q.type === 'matching') {
-        var userMatches = quizAnswers[q.id] || {};
-        return { questionIndex: index, answerIndex: -1, questionId: q.id, type: 'matching', matches: userMatches };
-      }
-      return { questionIndex: index, answerIndex: -1, questionId: q.id };
-    });
     return fetch(RESULT_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ studentName: studentName, answers: answers })
+      body: JSON.stringify({ studentName: studentName, sessionToken: sessionToken })
     }).then(function (res) {
       return readApiResponse(res, 'Could not create verified results.');
     });
@@ -2182,6 +2219,8 @@
       quizCompleted = 0;
       quizActive = false;
       quizFinished = false;
+      sessionToken = null;
+      sessionStarted = false;
       wrapUpActive = false;
       transitioning = false;
       autoAdvanceActive = true;

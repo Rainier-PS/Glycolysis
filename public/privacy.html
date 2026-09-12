@@ -6,6 +6,7 @@
   <link rel="stylesheet" href="styles/legal.css">
   <title>Privacy Policy | Glycolysis Interactive</title>
   <meta name="description" content="Privacy policy for the Glycolysis Interactive educational molecular viewer.">
+  <link rel="canonical" href="https://glycolysis.rainierps8.workers.dev/privacy.html">
 </head>
 <body>
   <a href="#mainContent" class="skip-link">Skip to content</a>
@@ -22,15 +23,38 @@
     <h2>Overview</h2>
     <p>Glycolysis Interactive is an educational website designed for learning about the glycolysis metabolic pathway. This privacy policy explains how we handle any data collected through your use of this site.</p>
 
-    <h2>Data Collection</h2>
-    <p>This website is a static educational resource. We do not collect personal information, do not use cookies for tracking, and do not operate user accounts.</p>
-    <p>The site does not transmit data to third-party analytics services. No browsing data is sold, shared, or used for advertising purposes.</p>
+    <h2>Architecture</h2>
+    <p>The site consists of a static educational frontend (HTML, CSS, and JavaScript files) and a Cloudflare Worker backend used for the interactive quiz and result-verification features. The quiz session, answer recording, scoring, and result verification all occur on the Worker backend. The educational content, 3D molecular viewer, story mode, and legal pages use static frontend files.</p>
 
-    <h2>Local Storage</h2>
-    <p>This website does not currently use browser local storage, cookies, or similar technologies. If a future version stores viewer preferences (such as hydrogen visibility or rotation settings) in local storage, that data would remain entirely on your device and would never be transmitted to any server, and this policy would be updated to describe it.</p>
+    <h2>Data Collected by the Backend</h2>
+    <p>When you use the interactive quiz, the following information is processed by the Cloudflare Worker backend:</p>
+    <ul>
+      <li><strong>Quiz session data:</strong> A server-generated session token, your answers, completion status, and a timestamp. This is stored temporarily in Cloudflare KV (a key-value store) and expires after 24 hours.</li>
+      <li><strong>Quiz results:</strong> Your student name (if provided), score, completion time, and a signed verification code. Results are stored in Cloudflare KV and expire after one year.</li>
+      <li><strong>IP address:</strong> Your IP address (as seen by Cloudflare) is used for rate limiting and is included in session records. It is not displayed to other users and is not used for analytics or tracking.</li>
+    </ul>
+
+    <h2>What We Do Not Collect</h2>
+    <ul>
+      <li>No cookies are used.</li>
+      <li>No browser local storage, session storage, or similar technologies are used.</li>
+      <li>No analytics, tracking, or advertising services are employed.</li>
+      <li>No user accounts are operated.</li>
+      <li>No data is sold, shared, or used for advertising purposes.</li>
+    </ul>
+
+    <h2>Email Sharing</h2>
+    <p>The site offers an option to email quiz results to a teacher. This uses your device's email application (via a mailto link) to open a pre-filled email. The website itself does not send emails or transmit information to an external email provider.</p>
+
+    <h2>Verification</h2>
+    <p>Quiz results include a verification code that can be checked by a teacher using the verification page. Anyone with a valid verification code can view the associated student name, score, and completion time.</p>
 
     <h2>Third-Party Services</h2>
-    <p>The 3D molecular structures displayed on this site are sourced from PubChem, a public chemical database maintained by the National Center for Biotechnology Information (NCBI). Loading these structures may involve fetching SDF files from the site's own server; no user data is sent to external services during this process.</p>
+    <p>The site loads the following third-party resources:</p>
+    <ul>
+      <li><strong>Google Fonts:</strong> The interactive story page loads font files from Google Fonts. This may result in your browser sending a request to Google's servers, which could include your IP address and browser information. No personal data is sent to Google by the site itself.</li>
+      <li><strong>PubChem data:</strong> Molecular structure data (SDF files) originates from PubChem, a public chemical database maintained by the National Center for Biotechnology Information (NCBI). These files are served from the site's own server; no data is sent to external services when loading them.</li>
+    </ul>
 
     <h2>Changes to This Policy</h2>
     <p>If this privacy policy is updated, the revision date at the top of this page will be changed. Continued use of the site after changes constitutes acceptance of the updated policy.</p>

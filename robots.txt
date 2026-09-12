@@ -7,4 +7,4 @@ Allow: /terms.html
 Allow: /accessibility.html
 Disallow: /quarantine/
 Crawl-delay: 1
-Sitemap: https://glycolysis-project.example/sitemap.xml
+Sitemap: https://glycolysis.rainierps8.workers.dev/sitemap.xml

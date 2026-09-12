@@ -13,7 +13,7 @@ See `project.md` for overall project architecture and `MASTER.md` for the canoni
 
 ## Story Structure
 
-10 conceptual beats defined in the `scenes` array in `story.js`. Each scene has:
+12 conceptual beats defined in the `scenes` array in `story.js`. Each scene has:
 - `id` - unique identifier
 - `phase` - intro, investment, payoff, accounting, finale
 - `molecule` - which molecule to display (or null)
@@ -33,11 +33,13 @@ See `project.md` for overall project architecture and `MASTER.md` for the canoni
 3. `glucose` - Glucose and ATP introduction (Quiz Q1)
 4. `investment` - ATP investment; glucose → G6P → F6P → FBP (Quiz Q2)
 5. `split` - Six-carbon split into two G3P (Quiz Q3)
-6. `nad-phase` - NAD+ → NADH electron transfer (Quiz Q4)
-7. `payoff` - ATP generation (Quiz Q5)
-8. `pyruvate` - Two pyruvate molecules
-9. `accounting` - Net yield summary
-10. `finale` - Broader context; triggers results screen
+6. `counting` - Reactions after split happen twice per glucose (Quiz Q4)
+7. `payoff` - G3P enters the payoff phase (Quiz Q5)
+8. `nad-phase` - NAD+ → NADH electron transfer (Quiz Q6)
+9. `payoff-atp` - ATP generation via substrate-level phosphorylation (Quiz Q7)
+10. `pyruvate` - Two pyruvate molecules (Quiz Q8)
+11. `oxygen` - Glycolysis does not require oxygen
+12. `finale` - Broader context; triggers results screen
 
 ## Quiz System
 

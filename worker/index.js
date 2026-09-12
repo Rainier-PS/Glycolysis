@@ -6,7 +6,9 @@ const API_HEADERS = {
 const RESULT_RATE_LIMIT_KEY = 'result_rate_v1';
 const VERIFY_RATE_LIMIT_KEY = 'verify_rate_v1';
 const RESULT_PREFIX = 'quiz_result:';
+const SESSION_PREFIX = 'quiz_session:';
 const RESULT_TTL_SECONDS = 31536000;
+const SESSION_TTL_SECONDS = 86400;
 const RATE_LIMIT_WINDOW_MS = 60000;
 const RATE_LIMIT_MAX_REQUESTS = 5;
 const MAX_NAME_LENGTH = 200;
@@ -170,6 +172,71 @@ function gradeAnswer(answer, correct) {
   return false;
 }
 
+async function handleStartSession(request, env) {
+  if (!env.QUIZ_SESSION_KV) return jsonError('Session storage not configured.', 503);
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  const rateLimitError = await checkRateLimit(env, RESULT_RATE_LIMIT_KEY, ip);
+  if (rateLimitError) return rateLimitError;
+  const sessionToken = generateToken();
+  const session = {
+    id: sessionToken,
+    questionCount: EXPECTED_QUESTION_COUNT,
+    answers: [],
+    completed: false,
+    createdAt: new Date().toISOString(),
+    ip: ip,
+  };
+  await env.QUIZ_SESSION_KV.put(SESSION_PREFIX + sessionToken, JSON.stringify(session), {
+    expirationTtl: SESSION_TTL_SECONDS,
+  });
+  return jsonSuccess({ sessionToken: sessionToken });
+}
+
+async function handleRecordAnswer(request, env) {
+  if (!env.QUIZ_SESSION_KV) return jsonError('Session storage not configured.', 503);
+  let body;
+  try {
+    body = await readJson(request);
+  } catch (error) {
+    return jsonError(error.message || 'Invalid JSON.', 400);
+  }
+  const sessionToken = body.sessionToken;
+  if (!sessionToken || typeof sessionToken !== 'string') {
+    return jsonError('Session token required.', 400);
+  }
+  const session = await env.QUIZ_SESSION_KV.get(SESSION_PREFIX + sessionToken, { type: 'json' });
+  if (!session) return jsonError('Session not found or expired.', 404);
+  if (session.completed) return jsonError('Session already completed.', 400);
+  const questionIndex = body.questionIndex;
+  if (typeof questionIndex !== 'number' || questionIndex < 0 || questionIndex >= EXPECTED_QUESTION_COUNT) {
+    return jsonError('Invalid question index.', 400);
+  }
+  const selectedId = body.selectedId;
+  const selectedIds = body.selectedIds;
+  const matches = body.matches;
+  const answerType = body.type;
+  if (answerType === 'single') {
+    if (typeof selectedId !== 'string') return jsonError('Invalid answer.', 400);
+    session.answers[questionIndex] = { type: 'single', selectedId: selectedId };
+  } else if (answerType === 'multi') {
+    if (!Array.isArray(selectedIds)) return jsonError('Invalid answer.', 400);
+    session.answers[questionIndex] = { type: 'multi', selectedIds: selectedIds };
+  } else if (answerType === 'matching') {
+    if (!matches || typeof matches !== 'object') return jsonError('Invalid answer.', 400);
+    session.answers[questionIndex] = { type: 'matching', matches: matches };
+  } else {
+    return jsonError('Invalid answer type.', 400);
+  }
+  const answeredCount = session.answers.filter(function (a) { return a != null; }).length;
+  if (answeredCount >= EXPECTED_QUESTION_COUNT) {
+    session.completed = true;
+  }
+  await env.QUIZ_SESSION_KV.put(SESSION_PREFIX + sessionToken, JSON.stringify(session), {
+    expirationTtl: SESSION_TTL_SECONDS,
+  });
+  return jsonSuccess({ recorded: true, completed: session.completed });
+}
+
 async function handleCreateResult(request, env) {
   if (!env.QUIZ_SESSION_KV) return jsonError('Result storage not configured.', 503);
   if (!env.RESULT_SIGNING_SECRET) return jsonError('Result verification is not configured on the server.', 503);
@@ -186,16 +253,25 @@ async function handleCreateResult(request, env) {
   }
 
   const studentName = sanitizeName(body.studentName) || 'Student';
-  const answers = body.answers;
+
+  const sessionToken = body.sessionToken;
+  if (!sessionToken || typeof sessionToken !== 'string') {
+    return jsonError('Session token required.', 400);
+  }
+  const session = await env.QUIZ_SESSION_KV.get(SESSION_PREFIX + sessionToken, { type: 'json' });
+  if (!session) return jsonError('Session not found or expired.', 400);
+  if (!session.completed) return jsonError('Quiz session not completed.', 400);
+
+  const answers = session.answers;
   if (!Array.isArray(answers) || answers.length !== EXPECTED_QUESTION_COUNT) {
-    return jsonError('All quiz answers are required.', 400);
+    return jsonError('Invalid session data.', 400);
   }
 
   let score = 0;
   for (let i = 0; i < CORRECT_ANSWERS.length; i++) {
     const answer = answers[i];
-    if (!answer || answer.questionIndex !== i) {
-      return jsonError('Invalid quiz answers.', 400);
+    if (!answer) {
+      return jsonError('Incomplete session answers.', 400);
     }
     if (gradeAnswer(answer, CORRECT_ANSWERS[i])) score++;
   }
@@ -212,7 +288,6 @@ async function handleCreateResult(request, env) {
     const isCorrect = gradeAnswer(answer, CORRECT_ANSWERS[index]);
     return {
       questionIndex: index,
-      answerIndex: answer.answerIndex !== undefined ? answer.answerIndex : -1,
       isCorrect: isCorrect,
     };
   });
@@ -266,6 +341,12 @@ async function handleVerifyResult(request, url, env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/api/start-session' && request.method === 'POST') {
+      return handleStartSession(request, env);
+    }
+    if (url.pathname === '/api/record-answer' && request.method === 'POST') {
+      return handleRecordAnswer(request, env);
+    }
     if (url.pathname === '/api/create-result' && request.method === 'POST') {
       return handleCreateResult(request, env);
     }

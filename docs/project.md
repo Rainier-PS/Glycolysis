@@ -71,7 +71,7 @@ Both use 3Dmol.js for real-time 3D molecular rendering of SDF-based structures a
 ### Story Page
 - Separate HTML document with external `story.css`, `story.js`, and `questions.js`
 - IIFE-scoped JavaScript
-- 10 conceptual beats with narration, captions, and molecular transitions
+- 12 conceptual beats with narration, captions, and molecular transitions
 - Quiz checkpoints after key beats (5 questions)
 - Results screen with score and question review
 - Signed result creation, downloadable report, verification page, and local email-app composition
@@ -118,11 +118,11 @@ Single canonical copy at `vendor/3dmol/3Dmol-min.js`. Referenced by both landing
 ### Landing Page
 - Title: "Glycolysis | Interactive 3D Molecular Viewer"
 - Meta description present
-- Canonical URL: `https://glycolysis-project.example/` (placeholder; replace with the production domain at deployment)
+- Canonical URL: `https://glycolysis.rainierps8.workers.dev/`
 - Open Graph tags: og:type, og:title, og:description, og:url
 - Twitter Card tags: card, title, description
 - Structured data (JSON-LD): WebApplication schema
-- Google Search Console verification placeholder (replace `REPLACE_WITH_GOOGLE_VERIFICATION_TOKEN` with a real token from Google Search Console; never fabricate one)
+- Google Search Console verification set (`HNpQV2DbFSJBuhP7YB8At8Cs3YXfBu4s6o4GFPZ8FeA` in both `index.html` and `public/index.html`)
 
 ### Legal Pages
 - Each has a unique title and meta description
@@ -134,7 +134,6 @@ Single canonical copy at `vendor/3dmol/3Dmol-min.js`. Referenced by both landing
 - No structured data or Open Graph tags
 
 ### Not Yet Configured
-- Production domain (currently uses `glycolysis-project.example` placeholder in canonical URL, OG URL, JSON-LD, robots.txt, and sitemap.xml)
 - Production social preview image (no `og:image`)
 
 ## 9. Accessibility
@@ -202,7 +201,7 @@ Edit `scenes` array in `story/story.js`. Each scene has: id, phase, molecule, ca
 2. Speech synthesis varies by browser/OS
 3. Linear documentary flow in story (no click-to-jump)
 4. Production domain not yet configured (uses placeholder URLs)
-5. Google Search Console verification not yet completed
+5. Google Search Console verification configured (token set in `index.html` and `public/index.html`)
 6. `src/main.js` and `styles/main.css` reference DOM (e.g. `#reactionScenes`, `#pathwayNav`) that no page provides; they are retained as extension scaffolding and must not be loaded as-is
 
 ## 14. What NOT to Change Casually
