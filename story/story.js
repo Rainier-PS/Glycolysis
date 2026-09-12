@@ -275,7 +275,7 @@
     {
       id: 'split', phase: 'investment', molecule: 'fbp', camera: { zoom: .7, speed: .1 },
       captions: [
-        cap('Now the fructose-1,6-bisphosphate is split into two three-carbon molecules.', 5000, 'Fructose-1,6-bisphosphate is split into DHAP and glyceraldehyde-3-phosphate, also called G3P.'),
+        cap('Now the fructose-1,6-bisphosphate is split into two three-carbon triose phosphates.', 5000, 'Fructose-1,6-bisphosphate is split into DHAP and glyceraldehyde-3-phosphate, also called G3P.'),
         cap('One of them is DHAP, and DHAP is changed into G3P. So from now on, we have two G3P molecules going through the pathway.', 6000, 'DHAP is then converted into G3P. This leaves two G3P molecules continuing through glycolysis.')
       ],
       enzyme: null, reaction: null, accounting: null,

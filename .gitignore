@@ -1,17 +1,12 @@
-# Local Wrangler state and caches
 .wrangler/
 
-# Node modules (if any)
 node_modules/
 
-# Local secrets — NEVER commit these
 .env
 .env.*
 !.env.example
 
-# OS files
 .DS_Store
 Thumbs.db
 
-# Private local working document
 docs/MASTER.md
